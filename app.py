@@ -319,50 +319,109 @@ with tab_ca:
                 yaxis_title="%", margin=dict(t=10,b=10))
             st.plotly_chart(fig_y, use_container_width=True)
 
-        # Comparaison inter-annuelle
-        st.markdown('<div class="section-titre">Comparaison même mois — années précédentes</div>', unsafe_allow_html=True)
-        mois_dispo = sorted(ca_m["mois"].unique().astype(int))
-        mois_choisi = st.selectbox("Choisir un mois", mois_dispo,
-            format_func=lambda m: MOIS_NOMS.get(int(m), str(m)),
-            index=len(mois_dispo)-1, key="mois_inter")
-        df_mi = ca_m[ca_m["mois"]==mois_choisi].copy().sort_values("annee")
-        if len(df_mi) >= 1:
-            annees_list = sorted(df_mi["annee"].unique().astype(int))
-            fig_ia = go.Figure()
-            for i, row in df_mi.iterrows():
-                an = int(row["annee"])
-                fig_ia.add_trace(go.Bar(x=[str(an)], y=[row["total_ca"]],
-                    name=str(an), marker_color=COLORS[annees_list.index(an)%len(COLORS)],
-                    text=[f"{row['total_ca']:,.0f}"], textposition="outside"))
-            if len(df_mi) > 1:
-                fig_ia.add_trace(go.Scatter(x=df_mi["annee"].astype(str), y=df_mi["total_ca"],
-                    mode="lines+markers", name="Tendance",
-                    line=dict(color="#6b7280",width=1.5,dash="dot"), showlegend=True))
-            fig_ia.update_layout(height=320, showlegend=len(df_mi)>1,
-                title=f"CA de {MOIS_NOMS.get(int(mois_choisi))} par année",
-                plot_bgcolor="white", paper_bgcolor="white",
-                yaxis_title="DH", margin=dict(t=40,b=10))
-            st.plotly_chart(fig_ia, use_container_width=True)
+        # Comparaison inter-annuelle — tableau côte à côte
+        st.markdown('<div class="section-titre">Comparaison mensuelle N vs N-1</div>',
+                    unsafe_allow_html=True)
 
-            # Tableau inter-annuel
-            rows_ia = []
-            for _, row in df_mi.iterrows():
-                an = int(row["annee"])
-                prev_r = df_mi[df_mi["annee"]==an-1]
-                var_abs = row["total_ca"] - prev_r.iloc[0]["total_ca"] if not prev_r.empty else None
-                var_pct = (var_abs/prev_r.iloc[0]["total_ca"]*100) if var_abs is not None and prev_r.iloc[0]["total_ca"] else None
-                rows_ia.append({"Année": str(an), "CA (DH)": f"{row['total_ca']:,.0f}",
-                    "vs N-1 (DH)": f"{var_abs:+,.0f}" if var_abs is not None else "—",
-                    "Évolution %": f"{var_pct:+.1f}%" if var_pct is not None else "—",
-                    "Nb jours": str(int(row["nb_jours"]))})
-            df_ia = pd.DataFrame(rows_ia)
+        annees_dispo = sorted(ca_m["annee"].unique().astype(int), reverse=True)
+
+        if len(annees_dispo) >= 2:
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                annee_ref = st.selectbox("Année de référence", annees_dispo,
+                    index=0, key="annee_ref")
+            with col_a2:
+                annees_comp = [a for a in annees_dispo if a != annee_ref]
+                annee_comp = st.selectbox("Année de comparaison (N-1)",
+                    annees_comp, index=0, key="annee_comp")
+
+            # Données des deux années
+            df_ref  = ca_m[ca_m["annee"] == annee_ref].set_index("mois")
+            df_comp = ca_m[ca_m["annee"] == annee_comp].set_index("mois")
+
+            # Mois communs aux deux années
+            mois_communs = sorted(set(df_ref.index) & set(df_comp.index))
+            # Mois dans l'une ou l'autre
+            tous_mois = sorted(set(df_ref.index) | set(df_comp.index))
+
+            rows = []
+            for mois in tous_mois:
+                ca_r = df_ref.loc[mois, "total_ca"]  if mois in df_ref.index  else None
+                ca_c = df_comp.loc[mois, "total_ca"] if mois in df_comp.index else None
+                if ca_r is not None and ca_c is not None:
+                    var_abs = ca_r - ca_c
+                    var_pct = (var_abs / ca_c * 100) if ca_c else None
+                else:
+                    var_abs = None
+                    var_pct = None
+                rows.append({
+                    "Mois": MOIS_NOMS.get(int(mois), str(mois)),
+                    f"CA {annee_ref} (DH)":  f"{ca_r:,.0f}" if ca_r is not None else "—",
+                    f"CA {annee_comp} (DH)": f"{ca_c:,.0f}" if ca_c is not None else "—",
+                    "vs N-1 (DH)":   f"{var_abs:+,.0f}" if var_abs is not None else "—",
+                    "Évolution %":   f"{var_pct:+.1f}%" if var_pct is not None else "—",
+                })
+
+            df_comp_table = pd.DataFrame(rows)
+
+            # Graphique côte à côte
+            fig_comp = go.Figure()
+            fig_comp.add_trace(go.Bar(
+                x=df_comp_table["Mois"],
+                y=[float(r.replace(",","").replace(" DH","")) if r != "—" else 0
+                   for r in df_comp_table[f"CA {annee_ref} (DH)"]],
+                name=str(annee_ref),
+                marker_color="#2563eb",
+                text=df_comp_table[f"CA {annee_ref} (DH)"],
+                textposition="outside",
+            ))
+            fig_comp.add_trace(go.Bar(
+                x=df_comp_table["Mois"],
+                y=[float(r.replace(",","").replace(" DH","")) if r != "—" else 0
+                   for r in df_comp_table[f"CA {annee_comp} (DH)"]],
+                name=str(annee_comp),
+                marker_color="#93c5fd",
+                text=df_comp_table[f"CA {annee_comp} (DH)"],
+                textposition="outside",
+            ))
+            fig_comp.update_layout(
+                barmode="group",
+                height=400,
+                title=f"CA mensuel : {annee_ref} vs {annee_comp}",
+                plot_bgcolor="white", paper_bgcolor="white",
+                legend=dict(orientation="h", y=1.1),
+                yaxis_title="DH",
+                margin=dict(t=60, b=10),
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+            # Tableau comparatif
             def color_evol(v):
                 try:
                     n = float(str(v).replace("%","").replace("+",""))
-                    return "background-color:#d1fae5;color:#065f46" if n>0 else ("background-color:#fee2e2;color:#991b1b" if n<0 else "")
+                    if n > 0: return "background-color:#d1fae5;color:#065f46"
+                    if n < 0: return "background-color:#fee2e2;color:#991b1b"
+                    return ""
                 except: return ""
-            st.dataframe(df_ia.style.map(color_evol, subset=["Évolution %","vs N-1 (DH)"]),
-                use_container_width=True, hide_index=True)
+
+            st.dataframe(
+                df_comp_table.style.map(color_evol, subset=["Évolution %", "vs N-1 (DH)"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            # Totaux
+            ca_ref_total  = ca_m[ca_m["annee"]==annee_ref]["total_ca"].sum()
+            ca_comp_total = ca_m[ca_m["annee"]==annee_comp]["total_ca"].sum()
+            var_total = ca_ref_total - ca_comp_total
+            var_pct_total = (var_total / ca_comp_total * 100) if ca_comp_total else 0
+            c1, c2, c3 = st.columns(3)
+            c1.metric(f"Total CA {annee_ref}",  f"{ca_ref_total:,.0f} DH")
+            c2.metric(f"Total CA {annee_comp}", f"{ca_comp_total:,.0f} DH")
+            c3.metric("Évolution globale", f"{var_pct_total:+.1f}%",
+                      f"{var_total:+,.0f} DH")
+        else:
+            st.info("Pas assez d'années disponibles pour la comparaison N vs N-1.")
 
         # Tableau récap mensuel
         st.markdown('<div class="section-titre">Tableau récapitulatif mensuel</div>', unsafe_allow_html=True)
