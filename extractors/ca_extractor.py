@@ -1,8 +1,5 @@
 # ==============================================================
 #  extractors/ca_extractor.py
-#  Lit le fichier Reporting CA et extrait les données journalières.
-#  Structure attendue : feuilles "CA JANVIER 2026", "CA FEVRIER 2026"...
-#  Chaque feuille contient : DATE | CB | ESPECE | PAYPAL | CHQ | VIREMENT | TOTAL
 # ==============================================================
 
 import sys
@@ -39,17 +36,17 @@ def _trouver_ligne_entete(lignes: list) -> tuple:
                 if cellule is None:
                     continue
                 cle = str(cellule).upper().strip()
-                if cle == "CB":
+                if cle == "CB" and "cb" not in colonnes:
                     colonnes["cb"] = j
-                elif cle == "ESPECE":
+                elif cle == "ESPECE" and "espece" not in colonnes:
                     colonnes["espece"] = j
-                elif cle == "PAYPAL":
+                elif cle == "PAYPAL" and "paypal" not in colonnes:
                     colonnes["paypal"] = j
-                elif cle in ("CHQ", "CHEQUE", "CHÈQUE"):
+                elif cle in ("CHQ", "CHEQUE", "CHÈQUE") and "cheque" not in colonnes:
                     colonnes["cheque"] = j
-                elif cle == "VIREMENT":
+                elif cle == "VIREMENT" and "virement" not in colonnes:
                     colonnes["virement"] = j
-                elif cle == "TOTAL":
+                elif cle == "TOTAL" and "total" not in colonnes:
                     colonnes["total"] = j
             return i, colonnes
     return None, {}
