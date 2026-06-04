@@ -115,7 +115,7 @@ def sync_drive_si_configure(dossier_projet: str, dossier_data: str):
 # ──────────────────────────────────────────────
 # CHARGEMENT
 # ──────────────────────────────────────────────
-@st.cache_data(show_spinner="⏳ Chargement des données...")
+@st.cache_data(show_spinner="⏳ Chargement des données...", ttl=0)
 def charger(dossier, seuil_c, ca_max, seuil_ch, seuil_ca):
     from config.mapping import FICHIER_CA, FICHIER_CAISSE_W, FICHIER_CAISSE_B, FICHIER_CPC
     from extractors.ca_extractor      import extraire_ca
