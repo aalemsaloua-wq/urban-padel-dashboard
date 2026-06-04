@@ -34,12 +34,14 @@ def _extraire_date_libelle(libelle: str, annee_feuille: int) -> datetime.date | 
     m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})', lib)
     if m:
         j, mo, an = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        # Ignorer si l'année est clairement erronée (trop éloignée de l'année de feuille)
-        if abs(an - annee_feuille) <= 1:
-            try:
-                return datetime.date(an, mo, j)
-            except ValueError:
-                pass
+        # Si l année du libelle est erronee (ex: 2021 dans une feuille 2024),
+        # on utilise l annee de la feuille pour corriger automatiquement
+        if abs(an - annee_feuille) > 1:
+            an = annee_feuille
+        try:
+            return datetime.date(an, mo, j)
+        except ValueError:
+            pass
 
     # 2. Date partielle dd/mm (sans année) → utiliser l'année de la feuille
     m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})(?![/\-\.]\d)', lib)
