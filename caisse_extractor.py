@@ -1,9 +1,5 @@
 # ==============================================================
 #  extractors/caisse_extractor.py
-#  Lit les fichiers Caisse W et Caisse B.
-#  La date de référence pour le cross-check est extraite
-#  du champ LIBELLÉ (ex: "CA DU 01/01/2026") en priorité,
-#  avec fallback sur la colonne DATE si le libellé n'a pas de date.
 # ==============================================================
 
 import sys, os, re, datetime
@@ -14,28 +10,14 @@ from extractors.utils import nettoyer_valeur, lire_date, extraire_mois_annee
 from config.mapping import CAISSE_COL_CODE, CAISSE_COL_DEBIT, CAISSE_COL_CREDIT, CAISSE_CODES_CA
 
 
-def _extraire_date_libelle(libelle: str, annee_feuille: int) -> datetime.date | None:
-    """
-    Extrait la date depuis un libellé de caisse.
-
-    Formats gérés :
-      "CA DU 01/01/2026"          → 01/01/2026
-      "CA DU 01/10"               → 01/10/<annee_feuille>
-      "CHIFFRE D'AFFAIRE 20/06/2023 ESPECE" → 20/06/2023
-      "CHIFFRE D'AFFAIRE DU 15/06 ESPECE"   → 15/06/<annee_feuille>
-
-    Retourne None si aucune date trouvée ou si la date est invalide.
-    """
+def _extraire_date_libelle(libelle: str, annee_feuille: int):
     if not libelle or not isinstance(libelle, str):
         return None
     lib = libelle.upper().strip()
 
-    # 1. Date complète dd/mm/yyyy
     m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})', lib)
     if m:
         j, mo, an = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        # Si l année du libelle est erronee (ex: 2021 dans une feuille 2024),
-        # on utilise l annee de la feuille pour corriger automatiquement
         if abs(an - annee_feuille) > 1:
             an = annee_feuille
         try:
@@ -43,7 +25,6 @@ def _extraire_date_libelle(libelle: str, annee_feuille: int) -> datetime.date | 
         except ValueError:
             pass
 
-    # 2. Date partielle dd/mm (sans année) → utiliser l'année de la feuille
     m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})(?![/\-\.]\d)', lib)
     if m:
         j, mo = int(m.group(1)), int(m.group(2))
@@ -57,7 +38,6 @@ def _extraire_date_libelle(libelle: str, annee_feuille: int) -> datetime.date | 
 
 
 def _trouver_entete_caisse(lignes: list) -> tuple:
-    """Détecte la ligne d'en-tête et retourne (index, dict_colonnes)."""
     mots_code   = [c.upper() for c in CAISSE_COL_CODE]
     mots_debit  = [c.upper() for c in CAISSE_COL_DEBIT]
     mots_credit = [c.upper() for c in CAISSE_COL_CREDIT]
@@ -98,37 +78,36 @@ def _trouver_entete_caisse(lignes: list) -> tuple:
 def _est_entree_ca(code: str, fnr: str, libelle: str) -> bool:
     """
     Retourne True UNIQUEMENT si cette ligne est une entree CA especes journaliere.
-    On accepte seulement les libelles du type "CA DU dd/mm/yyyy" ou "CA DU dd/mm".
-    On exclut les tournois, ventes de materiel, regularisations, etc.
+    Accepte : CA DU dd/mm/yyyy, CA DU dd/mm, CHIFFRE D AFFAIRE DU dd/mm
+    Exclut  : tournois, ventes materiel, regularisations, etc.
     """
-    import re
     lib = libelle.upper().strip()
-    
-    # Pattern strict : "CA DU dd/mm/yyyy" ou "CA DU dd/mm" 
-    if re.match(r'CA DU \d{1,2}/\d{1,2}', lib):
+
+    # Pattern strict : "CA DU dd/mm" ou "CA dd/mm"
+    if re.match(r'CA\s+DU\s+\d{1,2}/\d{1,2}', lib):
         return True
-    
-    # Pattern caisse W : "CHIFFRE D'AFFAIRE DU dd/mm"
-    if re.match(r'CHIFFRE D[\'\s]?AFFAIRE[S]?\s+DU \d{1,2}/\d{1,2}', lib):
+    if re.match(r'CA\s+\d{1,2}/\d{1,2}', lib):
         return True
-    
-    # FNR = CA (caisse W)
+
+    # Pattern caisse W : "CHIFFRE D'AFFAIRE DU dd/mm" ou "CHIFFRE D AFFAIRE dd/mm"
+    if re.match(r"CHIFFRE D['\s]?AFFAIRE[S]?\s+(DU\s+)?\d{1,2}/\d{1,2}", lib):
+        return True
+
+    # FNR = CA avec date dans le libelle (caisse W)
     if fnr.upper().strip() == 'CA':
         if re.search(r'\d{1,2}/\d{1,2}', lib):
             return True
-    
+
     return False
 
 
 def _lire_feuille_caisse(ws, nom_feuille: str, id_caisse: str) -> list:
-    """Parse une feuille de caisse et retourne les mouvements CA."""
     lignes = list(ws.iter_rows(values_only=True))
     idx_entete, colonnes = _trouver_entete_caisse(lignes)
 
     if idx_entete is None:
         return []
 
-    # Extraire l'année depuis le nom de la feuille pour compléter les dates partielles
     my = extraire_mois_annee(nom_feuille)
     annee_feuille = my[1] if my else datetime.date.today().year
 
@@ -149,27 +128,22 @@ def _lire_feuille_caisse(ws, nom_feuille: str, id_caisse: str) -> list:
         credit  = nettoyer_valeur(get('credit'))
         solde   = nettoyer_valeur(get('solde'))
 
-        # Vérifier si c'est une entrée CA
         if not _est_entree_ca(code, fnr, libelle):
             continue
         if debit is None or debit <= 0:
             continue
 
-        # ── Clé de date : libellé en priorité, puis colonne DATE ──
         date_depuis_libelle = _extraire_date_libelle(libelle, annee_feuille)
         date_depuis_col     = lire_date(get('date'))
 
-        # Choisir la meilleure date :
-        # - Si le libellé donne une date valide → on l'utilise (c'est la date réelle du CA)
-        # - Sinon on prend la colonne DATE
         if date_depuis_libelle is not None:
-            date_val = date_depuis_libelle
+            date_val    = date_depuis_libelle
             source_date = 'libelle'
         elif date_depuis_col is not None:
-            date_val = date_depuis_col
+            date_val    = date_depuis_col
             source_date = 'colonne'
         else:
-            continue  # Aucune date trouvable → ignorer
+            continue
 
         mouvements.append({
             'caisse':        id_caisse,
@@ -191,11 +165,6 @@ def _lire_feuille_caisse(ws, nom_feuille: str, id_caisse: str) -> list:
 
 
 def extraire_caisse(chemin_fichier: str, id_caisse: str) -> dict:
-    """
-    Extrait toutes les entrées CA d'un fichier caisse.
-    La date utilisée pour le cross-check provient du LIBELLÉ
-    (ex: "CA DU 01/01/2026") en priorité.
-    """
     print(f'\n  Lecture Caisse {id_caisse}...')
     print(f'  Fichier : {os.path.basename(chemin_fichier)}')
 
@@ -218,15 +187,14 @@ def extraire_caisse(chemin_fichier: str, id_caisse: str) -> dict:
             if mvts:
                 nb_lib = sum(1 for m in mvts if m['source_date'] == 'libelle')
                 nb_col = sum(1 for m in mvts if m['source_date'] == 'colonne')
-                print(f'  ✅ {nom_feuille} → {len(mvts)} entrées CA '
-                      f'(date libellé={nb_lib}, date colonne={nb_col})')
+                print(f'  OK {nom_feuille} -> {len(mvts)} entrees CA '
+                      f'(libelle={nb_lib}, colonne={nb_col})')
                 tous.extend(mvts)
         except Exception as e:
-            msg = f'Erreur {nom_feuille}: {e}'
-            erreurs.append(msg)
+            erreurs.append(f'Erreur {nom_feuille}: {e}')
 
     wb.close()
-    print(f'  → Total Caisse {id_caisse} : {len(tous)} entrées CA')
+    print(f'  -> Total Caisse {id_caisse} : {len(tous)} entrees CA')
 
     return {
         'mouvements':    tous,
