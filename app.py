@@ -115,7 +115,7 @@ def sync_drive_si_configure(dossier_projet: str, dossier_data: str):
 # ──────────────────────────────────────────────
 # CHARGEMENT
 # ──────────────────────────────────────────────
-@st.cache_data(show_spinner="⏳ Chargement des données...", ttl=0)
+@st.cache_data(show_spinner="⏳ Chargement des données...")
 def charger(dossier, seuil_c, ca_max, seuil_ch, seuil_ca):
     from config.mapping import FICHIER_CA, FICHIER_CAISSE_W, FICHIER_CAISSE_B, FICHIER_CPC
     from extractors.ca_extractor      import extraire_ca
@@ -283,162 +283,220 @@ tab_ca, tab_jour, tab_act, tab_rem, tab_be, tab_cpc, tab_prev, tab_mix, tab_ano,
 # ══════════════════════════════════════════════
 with tab_ca:
     if ca_m.empty:
-        st.warning("Aucune donnée CA.")
+        st.warning("Aucune donnee CA.")
     else:
-        st.markdown('<div class="section-titre">Évolution du CA mensuel</div>', unsafe_allow_html=True)
-        lx = ca_m["date"].dt.strftime("%b %Y")
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=lx, y=ca_m["total_ca"], name="CA", marker_color="#2563eb",
-            text=ca_m["total_ca"].apply(lambda v: f"{v/1000:.0f}k"), textposition="outside"))
-        fig.add_trace(go.Scatter(x=lx, y=ca_m["total_ca"].rolling(3,min_periods=1).mean(),
-            name="Moy. 3 mois", line=dict(color="#f59e0b",width=2,dash="dash")))
-        fig.update_layout(height=360, plot_bgcolor="white", paper_bgcolor="white",
-            legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=30,b=10))
-        st.plotly_chart(fig, use_container_width=True)
+        # Configuration terrains par periode
+        def get_terrains(annee, mois):
+            a, m = int(annee), int(mois)
+            if a in (2023, 2024): return 3.5
+            if a == 2026:
+                if m <= 4: return 3.5
+                if m == 5: return 4.5
+                return 7.5
+            return 3.5
 
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown('<div class="section-titre">MoM (%)</div>', unsafe_allow_html=True)
-            fig_m = go.Figure(go.Bar(x=lx, y=ca_m["ca_mom_pct"],
-                marker_color=["#10b981" if v>=0 else "#ef4444" for v in ca_m["ca_mom_pct"].fillna(0)],
-                text=ca_m["ca_mom_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
+        ca_m2 = ca_m.copy()
+        ca_m2["nb_terrains"]    = ca_m2.apply(lambda r: get_terrains(r["annee"], r["mois"]), axis=1)
+        ca_m2["ca_par_terrain"] = ca_m2["total_ca"] / ca_m2["nb_terrains"]
+
+        # Sous-onglets
+        st1, st2, st3, st4, st5 = st.tabs([
+            "📊 CA Journalier",
+            "📅 CA Mensuel N",
+            "📅 CA Mensuel N-1",
+            "🏓 CA / Terrain",
+            "🏓 CA / Terrain N-1",
+        ])
+
+        # ── SOUS-ONGLET 1 : CA JOURNALIER ──────────────────
+        with st1:
+            lx = ca_m["date"].dt.strftime("%b %Y")
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=lx, y=ca_m["total_ca"], name="CA", marker_color="#2563eb",
+                text=ca_m["total_ca"].apply(lambda v: f"{v/1000:.0f}k"), textposition="outside"))
+            fig.add_trace(go.Scatter(x=lx, y=ca_m["total_ca"].rolling(3,min_periods=1).mean(),
+                name="Moy. 3 mois", line=dict(color="#f59e0b",width=2,dash="dash")))
+            fig.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
+                legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=30,b=10))
+            st.plotly_chart(fig, use_container_width=True)
+            cola, colb = st.columns(2)
+            with cola:
+                st.markdown("**Variation MoM (%)**")
+                fm = go.Figure(go.Bar(x=lx, y=ca_m["ca_mom_pct"],
+                    marker_color=["#10b981" if v>=0 else "#ef4444" for v in ca_m["ca_mom_pct"].fillna(0)],
+                    text=ca_m["ca_mom_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
+                    textposition="outside"))
+                fm.add_hline(y=0, line_color="#9ca3af")
+                fm.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=10,b=10))
+                st.plotly_chart(fm, use_container_width=True)
+            with colb:
+                st.markdown("**Variation YoY (%)**")
+                fy = go.Figure(go.Bar(x=lx, y=ca_m["ca_yoy_pct"],
+                    marker_color=["#10b981" if v>=0 else "#ef4444" for v in ca_m["ca_yoy_pct"].fillna(0)],
+                    text=ca_m["ca_yoy_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
+                    textposition="outside"))
+                fy.add_hline(y=0, line_color="#9ca3af")
+                fy.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=10,b=10))
+                st.plotly_chart(fy, use_container_width=True)
+            st.download_button("📥 CA CSV", ca_m.to_csv(index=False).encode(),
+                f"ca_mensuel_{datetime.date.today()}.csv","text/csv")
+
+        # ── SOUS-ONGLET 2 : CA MENSUEL N ───────────────────
+        with st2:
+            st.markdown('<div class="section-titre">CA Mensuel — Annee N</div>', unsafe_allow_html=True)
+            annees_dispo = sorted(ca_m["annee"].unique().astype(int), reverse=True)
+            annee_n = st.selectbox("Annee N", annees_dispo, index=0, key="an_n")
+            df_n = ca_m[ca_m["annee"]==annee_n].copy()
+            df_n["mois_nom"] = df_n["mois"].map(MOIS_NOMS)
+            fn = go.Figure(go.Bar(x=df_n["mois_nom"], y=df_n["total_ca"], marker_color="#2563eb",
+                text=df_n["total_ca"].apply(lambda v: f"{v/1000:.0f}k"), textposition="outside"))
+            fn.update_layout(height=360, plot_bgcolor="white", paper_bgcolor="white",
+                title=f"CA mensuel {annee_n}", yaxis_title="DH", margin=dict(t=50,b=10))
+            st.plotly_chart(fn, use_container_width=True)
+            df_nd = df_n[["mois_nom","total_ca","total_especes","total_cb","nb_jours","ca_mom_pct"]].copy()
+            df_nd.columns = ["Mois","CA Total","Especes","CB","Nb jours","MoM %"]
+            for c in ["CA Total","Especes","CB"]:
+                df_nd[c] = df_nd[c].apply(lambda v: f"{v:,.0f}" if pd.notna(v) else "-")
+            df_nd["MoM %"] = df_nd["MoM %"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else "-")
+            st.dataframe(df_nd, use_container_width=True, hide_index=True)
+            c1,c2,c3 = st.columns(3)
+            c1.metric(f"Total {annee_n}", f"{df_n['total_ca'].sum():,.0f} DH")
+            best_idx = df_n["total_ca"].idxmax()
+            c2.metric("Meilleur mois", MOIS_NOMS.get(int(df_n.loc[best_idx,"mois"]),"-"),
+                      f"{df_n['total_ca'].max():,.0f} DH")
+            c3.metric("CA moyen/mois", f"{df_n['total_ca'].mean():,.0f} DH")
+
+        # ── SOUS-ONGLET 3 : CA MENSUEL N-1 ─────────────────
+        with st3:
+            st.markdown('<div class="section-titre">CA Mensuel — N vs N-1</div>', unsafe_allow_html=True)
+            annees2 = sorted(ca_m["annee"].unique().astype(int), reverse=True)
+            cs1, cs2 = st.columns(2)
+            with cs1:
+                an_ref = st.selectbox("Annee N", annees2, index=0, key="an_ref")
+            with cs2:
+                an_comp_list = [a for a in annees2 if a != an_ref]
+                an_comp = st.selectbox("Annee N-1", an_comp_list, index=0, key="an_comp") if an_comp_list else None
+            if an_comp:
+                dfr = ca_m[ca_m["annee"]==an_ref].set_index("mois")
+                dfp = ca_m[ca_m["annee"]==an_comp].set_index("mois")
+                tous_m = sorted(set(dfr.index)|set(dfp.index))
+                rows = []
+                for mo in tous_m:
+                    cr = dfr.loc[mo,"total_ca"] if mo in dfr.index else None
+                    cp = dfp.loc[mo,"total_ca"] if mo in dfp.index else None
+                    va = (cr-cp) if cr and cp else None
+                    vp = (va/cp*100) if va and cp else None
+                    rows.append({"Mois": MOIS_NOMS.get(int(mo),str(mo)),
+                        f"CA {an_ref}":  f"{cr:,.0f}" if cr else "-",
+                        f"CA {an_comp}": f"{cp:,.0f}" if cp else "-",
+                        "vs N-1 (DH)":  f"{va:+,.0f}" if va else "-",
+                        "Evolution %":  f"{vp:+.1f}%" if vp else "-"})
+                dft = pd.DataFrame(rows)
+                fc = go.Figure()
+                fc.add_trace(go.Bar(x=dft["Mois"],
+                    y=[dfr.loc[m,"total_ca"] if m in dfr.index else 0 for m in tous_m],
+                    name=str(an_ref), marker_color="#2563eb"))
+                fc.add_trace(go.Bar(x=dft["Mois"],
+                    y=[dfp.loc[m,"total_ca"] if m in dfp.index else 0 for m in tous_m],
+                    name=str(an_comp), marker_color="#93c5fd"))
+                fc.update_layout(barmode="group", height=380,
+                    title=f"CA : {an_ref} vs {an_comp}",
+                    plot_bgcolor="white", paper_bgcolor="white",
+                    legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=50,b=10))
+                st.plotly_chart(fc, use_container_width=True)
+                def ce(v):
+                    try:
+                        n=float(str(v).replace("%","").replace("+",""))
+                        return "background-color:#d1fae5;color:#065f46" if n>0 else ("background-color:#fee2e2;color:#991b1b" if n<0 else "")
+                    except: return ""
+                st.dataframe(dft.style.map(ce,subset=["Evolution %","vs N-1 (DH)"]),
+                    use_container_width=True, hide_index=True)
+                t1=dfr["total_ca"].sum(); t2=dfp["total_ca"].sum()
+                vt=t1-t2; vtp=(vt/t2*100) if t2 else 0
+                c1,c2,c3=st.columns(3)
+                c1.metric(f"Total {an_ref}", f"{t1:,.0f} DH")
+                c2.metric(f"Total {an_comp}", f"{t2:,.0f} DH")
+                c3.metric("Evolution globale", f"{vtp:+.1f}%", f"{vt:+,.0f} DH")
+
+        # ── SOUS-ONGLET 4 : CA PAR TERRAIN ─────────────────
+        with st4:
+            st.markdown('<div class="section-titre">CA par Terrain — Annee N</div>', unsafe_allow_html=True)
+            st.caption("CA mensuel divise par le nombre de terrains actifs ce mois")
+            annees_t = sorted(ca_m2["annee"].unique().astype(int), reverse=True)
+            an_t = st.selectbox("Annee", annees_t, index=0, key="an_t")
+            dft2 = ca_m2[ca_m2["annee"]==an_t].copy()
+            dft2["mois_nom"] = dft2["mois"].map(MOIS_NOMS)
+            ft = go.Figure(go.Bar(x=dft2["mois_nom"], y=dft2["ca_par_terrain"],
+                marker_color="#8b5cf6",
+                text=dft2["ca_par_terrain"].apply(lambda v: f"{v/1000:.0f}k"),
                 textposition="outside"))
-            fig_m.add_hline(y=0, line_color="#9ca3af")
-            fig_m.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white",
-                yaxis_title="%", margin=dict(t=10,b=10))
-            st.plotly_chart(fig_m, use_container_width=True)
+            ft.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
+                title=f"CA par terrain — {an_t}", yaxis_title="DH/terrain", margin=dict(t=50,b=10))
+            st.plotly_chart(ft, use_container_width=True)
+            dtd = dft2[["mois_nom","nb_terrains","total_ca","ca_par_terrain","nb_jours"]].copy()
+            dtd["total_ca"]       = dtd["total_ca"].apply(lambda v: f"{v:,.0f}")
+            dtd["ca_par_terrain"] = dtd["ca_par_terrain"].apply(lambda v: f"{v:,.0f}")
+            dtd.columns = ["Mois","Nb Terrains","CA Total","CA/Terrain","Nb jours"]
+            st.dataframe(dtd, use_container_width=True, hide_index=True)
+            c1,c2,c3 = st.columns(3)
+            c1.metric("CA/terrain moyen", f"{dft2['ca_par_terrain'].mean():,.0f} DH")
+            bi = dft2["ca_par_terrain"].idxmax()
+            c2.metric("Meilleur mois", MOIS_NOMS.get(int(dft2.loc[bi,"mois"]),"-"),
+                f"{dft2['ca_par_terrain'].max():,.0f} DH")
+            c3.metric("Terrains actifs (dernier mois)", str(dft2["nb_terrains"].iloc[-1]))
 
-        with col_b:
-            st.markdown('<div class="section-titre">YoY (%)</div>', unsafe_allow_html=True)
-            fig_y = go.Figure(go.Bar(x=lx, y=ca_m["ca_yoy_pct"],
-                marker_color=["#10b981" if v>=0 else "#ef4444" for v in ca_m["ca_yoy_pct"].fillna(0)],
-                text=ca_m["ca_yoy_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
-                textposition="outside"))
-            fig_y.add_hline(y=0, line_color="#9ca3af")
-            fig_y.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white",
-                yaxis_title="%", margin=dict(t=10,b=10))
-            st.plotly_chart(fig_y, use_container_width=True)
+        # ── SOUS-ONGLET 5 : CA PAR TERRAIN N-1 ─────────────
+        with st5:
+            st.markdown('<div class="section-titre">CA par Terrain — N vs N-1</div>', unsafe_allow_html=True)
+            annees_t2 = sorted(ca_m2["annee"].unique().astype(int), reverse=True)
+            ct1,ct2 = st.columns(2)
+            with ct1:
+                an_tr = st.selectbox("Annee N", annees_t2, index=0, key="an_tr")
+            with ct2:
+                an_tn1_list = [a for a in annees_t2 if a != an_tr]
+                an_tn1 = st.selectbox("Annee N-1", an_tn1_list, index=0, key="an_tn1") if an_tn1_list else None
+            if an_tn1:
+                dtr  = ca_m2[ca_m2["annee"]==an_tr].set_index("mois")
+                dtn1 = ca_m2[ca_m2["annee"]==an_tn1].set_index("mois")
+                tous_mt = sorted(set(dtr.index)|set(dtn1.index))
+                rowst = []
+                for mo in tous_mt:
+                    cr  = dtr.loc[mo,"ca_par_terrain"]  if mo in dtr.index  else None
+                    cn1 = dtn1.loc[mo,"ca_par_terrain"] if mo in dtn1.index else None
+                    ter_r  = dtr.loc[mo,"nb_terrains"]  if mo in dtr.index  else None
+                    ter_n1 = dtn1.loc[mo,"nb_terrains"] if mo in dtn1.index else None
+                    va = (cr-cn1) if cr and cn1 else None
+                    vp = (va/cn1*100) if va and cn1 else None
+                    rowst.append({"Mois": MOIS_NOMS.get(int(mo),str(mo)),
+                        f"CA/T {an_tr}":  f"{cr:,.0f}"  if cr  else "-",
+                        f"Terrains {an_tr}":  str(ter_r)  if ter_r  else "-",
+                        f"CA/T {an_tn1}": f"{cn1:,.0f}" if cn1 else "-",
+                        f"Terrains {an_tn1}": str(ter_n1) if ter_n1 else "-",
+                        "vs N-1 (DH)": f"{va:+,.0f}" if va else "-",
+                        "Evolution %":  f"{vp:+.1f}%" if vp else "-"})
+                dfct = pd.DataFrame(rowst)
+                ftc = go.Figure()
+                ftc.add_trace(go.Bar(x=dfct["Mois"],
+                    y=[dtr.loc[m,"ca_par_terrain"] if m in dtr.index else 0 for m in tous_mt],
+                    name=str(an_tr), marker_color="#8b5cf6"))
+                ftc.add_trace(go.Bar(x=dfct["Mois"],
+                    y=[dtn1.loc[m,"ca_par_terrain"] if m in dtn1.index else 0 for m in tous_mt],
+                    name=str(an_tn1), marker_color="#c4b5fd"))
+                ftc.update_layout(barmode="group", height=380,
+                    title=f"CA/Terrain : {an_tr} vs {an_tn1}",
+                    plot_bgcolor="white", paper_bgcolor="white",
+                    legend=dict(orientation="h",y=1.1),
+                    yaxis_title="DH/terrain", margin=dict(t=50,b=10))
+                st.plotly_chart(ftc, use_container_width=True)
+                def ce2(v):
+                    try:
+                        n=float(str(v).replace("%","").replace("+",""))
+                        return "background-color:#d1fae5;color:#065f46" if n>0 else ("background-color:#fee2e2;color:#991b1b" if n<0 else "")
+                    except: return ""
+                st.dataframe(dfct.style.map(ce2,subset=["Evolution %","vs N-1 (DH)"]),
+                    use_container_width=True, hide_index=True)
 
-        # Comparaison inter-annuelle — tableau côte à côte
-        st.markdown('<div class="section-titre">Comparaison mensuelle N vs N-1</div>',
-                    unsafe_allow_html=True)
 
-        annees_dispo = sorted(ca_m["annee"].unique().astype(int), reverse=True)
-
-        if len(annees_dispo) >= 2:
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                annee_ref = st.selectbox("Année de référence", annees_dispo,
-                    index=0, key="annee_ref")
-            with col_a2:
-                annees_comp = [a for a in annees_dispo if a != annee_ref]
-                annee_comp = st.selectbox("Année de comparaison (N-1)",
-                    annees_comp, index=0, key="annee_comp")
-
-            # Données des deux années
-            df_ref  = ca_m[ca_m["annee"] == annee_ref].set_index("mois")
-            df_comp = ca_m[ca_m["annee"] == annee_comp].set_index("mois")
-
-            # Mois communs aux deux années
-            mois_communs = sorted(set(df_ref.index) & set(df_comp.index))
-            # Mois dans l'une ou l'autre
-            tous_mois = sorted(set(df_ref.index) | set(df_comp.index))
-
-            rows = []
-            for mois in tous_mois:
-                ca_r = df_ref.loc[mois, "total_ca"]  if mois in df_ref.index  else None
-                ca_c = df_comp.loc[mois, "total_ca"] if mois in df_comp.index else None
-                if ca_r is not None and ca_c is not None:
-                    var_abs = ca_r - ca_c
-                    var_pct = (var_abs / ca_c * 100) if ca_c else None
-                else:
-                    var_abs = None
-                    var_pct = None
-                rows.append({
-                    "Mois": MOIS_NOMS.get(int(mois), str(mois)),
-                    f"CA {annee_ref} (DH)":  f"{ca_r:,.0f}" if ca_r is not None else "—",
-                    f"CA {annee_comp} (DH)": f"{ca_c:,.0f}" if ca_c is not None else "—",
-                    "vs N-1 (DH)":   f"{var_abs:+,.0f}" if var_abs is not None else "—",
-                    "Évolution %":   f"{var_pct:+.1f}%" if var_pct is not None else "—",
-                })
-
-            df_comp_table = pd.DataFrame(rows)
-
-            # Graphique côte à côte
-            fig_comp = go.Figure()
-            fig_comp.add_trace(go.Bar(
-                x=df_comp_table["Mois"],
-                y=[float(r.replace(",","").replace(" DH","")) if r != "—" else 0
-                   for r in df_comp_table[f"CA {annee_ref} (DH)"]],
-                name=str(annee_ref),
-                marker_color="#2563eb",
-                text=df_comp_table[f"CA {annee_ref} (DH)"],
-                textposition="outside",
-            ))
-            fig_comp.add_trace(go.Bar(
-                x=df_comp_table["Mois"],
-                y=[float(r.replace(",","").replace(" DH","")) if r != "—" else 0
-                   for r in df_comp_table[f"CA {annee_comp} (DH)"]],
-                name=str(annee_comp),
-                marker_color="#93c5fd",
-                text=df_comp_table[f"CA {annee_comp} (DH)"],
-                textposition="outside",
-            ))
-            fig_comp.update_layout(
-                barmode="group",
-                height=400,
-                title=f"CA mensuel : {annee_ref} vs {annee_comp}",
-                plot_bgcolor="white", paper_bgcolor="white",
-                legend=dict(orientation="h", y=1.1),
-                yaxis_title="DH",
-                margin=dict(t=60, b=10),
-            )
-            st.plotly_chart(fig_comp, use_container_width=True)
-
-            # Tableau comparatif
-            def color_evol(v):
-                try:
-                    n = float(str(v).replace("%","").replace("+",""))
-                    if n > 0: return "background-color:#d1fae5;color:#065f46"
-                    if n < 0: return "background-color:#fee2e2;color:#991b1b"
-                    return ""
-                except: return ""
-
-            st.dataframe(
-                df_comp_table.style.map(color_evol, subset=["Évolution %", "vs N-1 (DH)"]),
-                use_container_width=True,
-                hide_index=True,
-            )
-
-            # Totaux
-            ca_ref_total  = ca_m[ca_m["annee"]==annee_ref]["total_ca"].sum()
-            ca_comp_total = ca_m[ca_m["annee"]==annee_comp]["total_ca"].sum()
-            var_total = ca_ref_total - ca_comp_total
-            var_pct_total = (var_total / ca_comp_total * 100) if ca_comp_total else 0
-            c1, c2, c3 = st.columns(3)
-            c1.metric(f"Total CA {annee_ref}",  f"{ca_ref_total:,.0f} DH")
-            c2.metric(f"Total CA {annee_comp}", f"{ca_comp_total:,.0f} DH")
-            c3.metric("Évolution globale", f"{var_pct_total:+.1f}%",
-                      f"{var_total:+,.0f} DH")
-        else:
-            st.info("Pas assez d'années disponibles pour la comparaison N vs N-1.")
-
-        # Tableau récap mensuel
-        st.markdown('<div class="section-titre">Tableau récapitulatif mensuel</div>', unsafe_allow_html=True)
-        df_t = ca_m[["annee","mois","total_ca","total_especes","total_cb","nb_jours","ca_mom_pct","ca_yoy_pct"]].copy()
-        df_t.columns = ["Année","Mois","CA Total","Espèces","CB","Nb jours","MoM %","YoY %"]
-        for c in ["CA Total","Espèces","CB"]:
-            df_t[c] = df_t[c].apply(lambda v: f"{v:,.0f}" if pd.notna(v) else "—")
-        for c in ["MoM %","YoY %"]:
-            df_t[c] = df_t[c].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else "—")
-        df_t["Mois"] = df_t["Mois"].apply(lambda m: f"{int(m):02d}")
-        st.dataframe(df_t.iloc[::-1], use_container_width=True, hide_index=True)
-        st.download_button("📥 CA mensuel CSV", ca_m.to_csv(index=False).encode(),
-            f"ca_mensuel_{datetime.date.today()}.csv", "text/csv")
-
-# ══════════════════════════════════════════════
-# ONGLET 2 — JOURS & SAISONNALITÉ
-# ══════════════════════════════════════════════
 with tab_jour:
     st.markdown('<div class="section-titre">CA moyen par jour de la semaine</div>', unsafe_allow_html=True)
     dow_avg = ca_j.groupby(["dow","jour_nom"])["total"].agg(["mean","sum","count"]).reset_index()
