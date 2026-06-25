@@ -221,20 +221,85 @@ if not ca_m.empty:
     last = ca_m.iloc[-1]
     prev = ca_m.iloc[-2] if len(ca_m) > 1 else None
 
-    # Score de santé
-    score = 100
-    nb_high = sum(1 for a in anom if a["severite"]=="HIGH")
-    score -= nb_high * 10
+    # ── Score de santé — 4 composantes de 25 pts ──────────
+
+    # Composante 1 : Rentabilité (marge EBITDA dernier mois)
+    s_rent = 0
     if not cpc_a.empty and pd.notna(cpc_a.iloc[-1].get("marge_ebitda")):
         marge = cpc_a.iloc[-1]["marge_ebitda"]
-        if marge < 10: score -= 20
-        elif marge < 20: score -= 10
-    if not cc.empty:
-        pct_ok = (cc["statut"]=="✅ OK").sum() / len(cc) * 100
-        if pct_ok < 50: score -= 15
+        if   marge >= 25: s_rent = 25
+        elif marge >= 15: s_rent = 20
+        elif marge >= 5:  s_rent = 10
+        else:             s_rent = 0
+    else:
+        s_rent = 25
+
+    # Composante 2 : Croissance CA
+    # On utilise le dernier mois COMPLET (>= 25 jours)
+    # pour eviter que un mois partiel fausse le score
+    s_ca = 20  # neutre par defaut
+    ca_m_complets = ca_m[ca_m["nb_jours"] >= 25]
+    if len(ca_m_complets) >= 2:
+        last_complet = ca_m_complets.iloc[-1]
+        prev_complet = ca_m_complets.iloc[-2]
+        if prev_complet["total_ca"] > 0:
+            mom_complet = (last_complet["total_ca"] - prev_complet["total_ca"]) / prev_complet["total_ca"] * 100
+            if   mom_complet >= 5:   s_ca = 25
+            elif mom_complet >= 0:   s_ca = 20
+            elif mom_complet >= -10: s_ca = 10
+            else:                    s_ca = 0
+        ca_m_ref = last_complet
+    else:
+        mom_complet = None
+        ca_m_ref = ca_m.iloc[-1] if not ca_m.empty else None
+
+    # Composante 3 : Contrôle caisses 2026
+    # On penalise uniquement "CA > Caisses" (especes declarees mais pas en caisse)
+    # On ignore "Caisses > CA" car ce sont souvent des recettes annexes legitimes
+    s_cc = 25
+    cc_2026 = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
+    if not cc_2026.empty:
+        nb_vrais_ecarts = (cc_2026["statut"] == "🔴 CA > Caisses").sum()
+        nb_jours_2026   = (cc_2026["statut"] != "⬜ Pas de caisse").sum()
+        pct_ecarts = (nb_vrais_ecarts / nb_jours_2026 * 100) if nb_jours_2026 > 0 else 0
+        if   pct_ecarts == 0:   s_cc = 25
+        elif pct_ecarts <= 5:   s_cc = 20
+        elif pct_ecarts <= 15:  s_cc = 10
+        else:                   s_cc = 0
+    else:
+        s_cc = 25
+
+    # Composante 4 : Anomalies critiques
+    # On exclut les anomalies de type ECART_CAISSE "Caisses > CA"
+    # car elles sont souvent dues a des recettes annexes legitimes (tournois, ventes)
+    # Anomalies HIGH retenues pour le score :
+    # - On exclut les ecarts caisse ou Caisses > CA (ecart negatif = recettes annexes legitimes)
+    # - On garde : CA > Caisses (especes non versees en caisse), baisses CA, baisses marge
+    def _ecart_caisses_superieur(a):
+        if a["type"] != "ECART_CAISSE": return False
+        msg = a.get("message", "")
+        # Ecart negatif = caisses > CA (ex: "Ecart de -8500 DH")
+        import re as _re
+        m = _re.search(r"Ecart de ([+-]?[\d,\.]+)", msg.replace("É","E").replace("é","e").replace(",",""))
+        if m:
+            try:
+                val = float(m.group(1).replace(",",""))
+                return val < 0  # negatif = caisses > CA = recette annexe legitime
+            except: pass
+        return False
+
+    nb_high = sum(1 for a in anom
+                  if a["severite"] == "HIGH"
+                  and not _ecart_caisses_superieur(a))
+    if   nb_high == 0: s_anom = 25
+    elif nb_high <= 2: s_anom = 15
+    elif nb_high <= 5: s_anom = 5
+    else:              s_anom = 0
+
+    score = s_rent + s_ca + s_cc + s_anom
     score = max(0, min(100, score))
-    score_cls = "score-green" if score>=70 else ("score-orange" if score>=40 else "score-red")
-    score_emoji = "🟢" if score>=70 else ("🟡" if score>=40 else "🔴")
+    score_cls   = "score-green"  if score >= 70 else ("score-orange" if score >= 40 else "score-red")
+    score_emoji = "🟢" if score >= 70 else ("🟡" if score >= 40 else "🔴")
 
     # Calcul CA/terrain mois en cours
     def get_terrains_kpi(annee, mois):
@@ -1117,32 +1182,29 @@ with tab_alert:
     st.markdown('<div class="section-titre">Score de santé financière</div>', unsafe_allow_html=True)
 
     # Score détaillé
-    composantes = []
-    # 1. Rentabilité
-    if not cpc_a.empty and pd.notna(cpc_a.iloc[-1].get("marge_ebitda")):
-        marge = cpc_a.iloc[-1]["marge_ebitda"]
-        s_rent = 25 if marge >= 25 else (20 if marge >= 15 else (10 if marge >= 5 else 0))
-        composantes.append({"Composante":"Rentabilité (marge EBITDA)","Score":s_rent,"Max":25,
-            "Détail":f"Marge = {marge:.1f}%"})
-    # 2. Croissance CA
-    if len(ca_m) >= 2:
-        mom = ca_m.iloc[-1].get("ca_mom_pct")
-        if pd.notna(mom):
-            s_ca = 25 if mom >= 5 else (20 if mom >= 0 else (10 if mom >= -10 else 0))
-            composantes.append({"Composante":"Croissance CA (MoM)","Score":s_ca,"Max":25,
-                "Détail":f"MoM = {mom:+.1f}%"})
-    # 3. Contrôle caisses
-    if not cc.empty:
-        pct_ok = nb_ok / len(cc) * 100
-        s_cc = 25 if pct_ok >= 90 else (20 if pct_ok >= 70 else (10 if pct_ok >= 50 else 0))
-        composantes.append({"Composante":"Contrôle caisses","Score":s_cc,"Max":25,
-            "Détail":f"{pct_ok:.0f}% jours OK"})
-    # 4. Anomalies
-    s_anom = 25 if nb_high == 0 else (15 if nb_high <= 2 else (5 if nb_high <= 5 else 0))
-    composantes.append({"Composante":"Absence d'anomalies","Score":s_anom,"Max":25,
-        "Détail":f"{nb_high} anomalie(s) critique(s)"})
+    # Reprendre les scores deja calcules en haut de page
+    marge_val = cpc_a.iloc[-1]["marge_ebitda"] if not cpc_a.empty and pd.notna(cpc_a.iloc[-1].get("marge_ebitda")) else None
+    mom_val   = ca_m.iloc[-1].get("ca_mom_pct") if len(ca_m) >= 2 else None
+    cc_2026_t = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
+    nb_ok_t   = (cc_2026_t["statut"]=="✅ OK").sum() if not cc_2026_t.empty else 0
+    tot_t     = len(cc_2026_t)
+    pct_ok_t  = (nb_ok_t/tot_t*100) if tot_t else 0
 
-    score_total = sum(c["Score"] for c in composantes)
+    composantes = [
+        {"Composante": "Rentabilite (marge EBITDA)",
+         "Score": s_rent, "Max": 25,
+         "Detail": f"Marge = {marge_val:.1f}%" if marge_val else "Pas de donnees CPC"},
+        {"Composante": "Croissance CA (MoM)",
+         "Score": s_ca,   "Max": 25,
+         "Detail": f"MoM = {mom_val:+.1f}%" if pd.notna(mom_val) else "—"},
+        {"Composante": "Controle caisses 2026",
+         "Score": s_cc,   "Max": 25,
+         "Detail": f"{pct_ok_t:.0f}% jours OK ({nb_ok_t}/{tot_t})" if tot_t else "Pas de donnees"},
+        {"Composante": "Absence d anomalies critiques",
+         "Score": s_anom, "Max": 25,
+         "Detail": f"{nb_high} anomalie(s) critique(s)"},
+    ]
+    score_total = score
     score_cls2 = "score-green" if score_total>=70 else ("score-orange" if score_total>=40 else "score-red")
     st.markdown(f'<div class="{score_cls2}">Score de santé : {score_total} / 100</div>',
         unsafe_allow_html=True)
