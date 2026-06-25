@@ -188,7 +188,9 @@ if D is None:
     st.stop()
 
 ca_j, ca_m, ca_mix = D["ca_j"], D["ca_m"], D["ca_mix"]
-cc, cpc_m, cpc_a   = D["cc"],   D["cpc_m"], D["cpc_a"]
+cc_full = D["cc"]
+cc = cc_full[cc_full["date"].dt.year >= 2026].copy() if not cc_full.empty else cc_full
+cpc_m, cpc_a = D["cpc_m"], D["cpc_a"]
 cpc_l, anom        = D["cpc_l"], D["anom"]
 cpc_brut           = D["cpc_brut"]
 
@@ -234,7 +236,33 @@ if not ca_m.empty:
     score_cls = "score-green" if score>=70 else ("score-orange" if score>=40 else "score-red")
     score_emoji = "🟢" if score>=70 else ("🟡" if score>=40 else "🔴")
 
-    c1,c2,c3,c4,c5,c6 = st.columns(6)
+    # Calcul CA/terrain mois en cours
+    def get_terrains_kpi(annee, mois):
+        a, m = int(annee), int(mois)
+        if a in (2023, 2024): return 3.5
+        if a == 2026:
+            if m <= 4: return 3.5
+            if m == 5: return 4.5
+            return 7.5
+        return 3.5
+
+    nb_ter_last   = get_terrains_kpi(last["annee"], last["mois"])
+    ca_par_ter    = last["total_ca"] / nb_ter_last if nb_ter_last else None
+
+    # CA N-1 meme mois
+    ca_m_n1 = ca_m[(ca_m["mois"]==last["mois"]) & (ca_m["annee"]==last["annee"]-1)]
+    ca_n1_val = ca_m_n1.iloc[0]["total_ca"] if not ca_m_n1.empty else None
+    ca_n1_delta = None
+    if ca_n1_val and last["total_ca"]:
+        ca_n1_pct = (last["total_ca"] - ca_n1_val) / ca_n1_val * 100
+        ca_n1_delta = f"{ca_n1_pct:+.1f}% vs N-1"
+
+    # Cross-check 2026 uniquement
+    cc_2026 = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
+    nb_ok_2026  = (cc_2026["statut"]=="✅ OK").sum() if not cc_2026.empty else 0
+    tot_cc_2026 = len(cc_2026)
+
+    c1,c2,c3,c4,c5,c6,c7,c8 = st.columns(8)
     with c1:
         st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None), unsafe_allow_html=True)
@@ -253,12 +281,21 @@ if not ca_m.empty:
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
     with c5:
-        nb_ok = (cc["statut"]=="✅ OK").sum() if not cc.empty else 0
-        tot_cc = len(cc)
-        st.markdown(kpi("Cross-check caisses", f"{nb_ok}/{tot_cc} OK",
-            f"{tot_cc-nb_ok} écart(s)"), unsafe_allow_html=True)
+        st.markdown(kpi("Cross-check 2026",
+            f"{nb_ok_2026}/{tot_cc_2026} OK",
+            f"{tot_cc_2026-nb_ok_2026} ecart(s)"), unsafe_allow_html=True)
     with c6:
-        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score santé</div>'
+        st.markdown(kpi(
+            f"CA/Terrain {int(last['mois']):02d}/{int(last['annee'])}",
+            f"{ca_par_ter:,.0f} DH" if ca_par_ter else "—",
+            f"{nb_ter_last} terrains"), unsafe_allow_html=True)
+    with c7:
+        st.markdown(kpi(
+            f"CA N-1 (meme mois)",
+            fmt(ca_n1_val) if ca_n1_val else "—",
+            ca_n1_delta), unsafe_allow_html=True)
+    with c8:
+        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante</div>'
             f'<div class="kpi-value">{score_emoji} {score}/100</div>'
             f'<div class="kpi-delta">{len(anom)} anomalie(s)</div></div>', unsafe_allow_html=True)
 
