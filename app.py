@@ -327,7 +327,7 @@ if not ca_m.empty:
     nb_ok_2026  = (cc_2026["statut"]=="✅ OK").sum() if not cc_2026.empty else 0
     tot_cc_2026 = len(cc_2026)
 
-    c1,c2,c3,c4,c5,c6,c7,c8 = st.columns(8)
+    c1,c2,c3,c4,c5,c6,c7 = st.columns(7)
     with c1:
         st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None), unsafe_allow_html=True)
@@ -335,9 +335,6 @@ if not ca_m.empty:
         avg_jour = ca_j["total"].mean()
         st.markdown(kpi("CA moyen / jour", fmt(avg_jour)), unsafe_allow_html=True)
     with c3:
-        taux = ca_j["taux_rempli"].mean()
-        st.markdown(kpi("Taux remplissage moyen", f"{taux:.0f}%"), unsafe_allow_html=True)
-    with c4:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
@@ -345,21 +342,21 @@ if not ca_m.empty:
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
-    with c5:
+    with c4:
         st.markdown(kpi("Cross-check 2026",
             f"{nb_ok_2026}/{tot_cc_2026} OK",
             f"{tot_cc_2026-nb_ok_2026} ecart(s)"), unsafe_allow_html=True)
-    with c6:
+    with c5:
         st.markdown(kpi(
             f"CA/Terrain {int(last['mois']):02d}/{int(last['annee'])}",
             f"{ca_par_ter:,.0f} DH" if ca_par_ter else "—",
             f"{nb_ter_last} terrains"), unsafe_allow_html=True)
-    with c7:
+    with c6:
         st.markdown(kpi(
             f"CA N-1 (meme mois)",
             fmt(ca_n1_val) if ca_n1_val else "—",
             ca_n1_delta), unsafe_allow_html=True)
-    with c8:
+    with c7:
         st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante</div>'
             f'<div class="kpi-value">{score_emoji} {score}/100</div>'
             f'<div class="kpi-delta">{len(anom)} anomalie(s)</div></div>', unsafe_allow_html=True)
@@ -1222,7 +1219,7 @@ with tab_alert:
         fig_rad.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white",
             yaxis_range=[0,30], yaxis_title="Score", margin=dict(t=10,b=10))
         st.plotly_chart(fig_rad, use_container_width=True)
-        st.dataframe(pd.DataFrame(composantes)[["Composante","Score","Max","Détail"]],
+        st.dataframe(pd.DataFrame(composantes)[["Composante","Score","Max","Detail"]],
             use_container_width=True, hide_index=True)
 
     # Alertes
