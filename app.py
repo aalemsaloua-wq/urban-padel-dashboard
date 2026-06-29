@@ -726,61 +726,87 @@ with tab_act:
 # ONGLET 4 — TAUX DE REMPLISSAGE
 # ══════════════════════════════════════════════
 with tab_rem:
-    st.markdown('<div class="section-titre">Taux de remplissage journalier</div>', unsafe_allow_html=True)
-    st.info(f"Basé sur un CA max théorique de **{ca_max_jour:,} DH/jour** (modifiable dans la sidebar)")
+    st.markdown('<div class="section-titre">Taux de remplissage reel — base sur le planning de reservation</div>', unsafe_allow_html=True)
 
-    # Distribution du taux
-    fig_hist = px.histogram(ca_j, x="taux_rempli", nbins=20,
-        color_discrete_sequence=["#2563eb"],
-        labels={"taux_rempli":"Taux de remplissage (%)"},
-        title="Distribution des taux de remplissage journaliers")
-    fig_hist.add_vline(x=ca_j["taux_rempli"].mean(), line_dash="dash",
-        line_color="#ef4444", annotation_text=f"Moyenne {ca_j['taux_rempli'].mean():.0f}%")
-    fig_hist.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white",
-        margin=dict(t=50,b=10))
-    st.plotly_chart(fig_hist, use_container_width=True)
+    # Charger le planning depuis le dossier data
+    planning_path = None
+    for fname in os.listdir(dossier_data) if os.path.isdir(dossier_data) else []:
+        if "PLANNING" in fname.upper() and fname.endswith(".xlsx"):
+            planning_path = os.path.join(dossier_data, fname)
+            break
 
-    # Taux moyen par mois
-    st.markdown('<div class="section-titre">Taux de remplissage moyen par mois</div>', unsafe_allow_html=True)
-    rem_m = ca_j.groupby(["annee","mois"])["taux_rempli"].mean().reset_index()
-    rem_m["periode"] = rem_m.apply(lambda r: f"{int(r['mois']):02d}/{int(r['annee'])}", axis=1)
-    fig_rem = go.Figure()
-    fig_rem.add_trace(go.Bar(x=rem_m["periode"], y=rem_m["taux_rempli"],
-        marker_color=["#10b981" if v>=70 else ("#f59e0b" if v>=50 else "#ef4444")
-                      for v in rem_m["taux_rempli"]],
-        text=rem_m["taux_rempli"].apply(lambda v: f"{v:.0f}%"), textposition="outside"))
-    fig_rem.add_hline(y=70, line_dash="dash", line_color="#10b981",
-        annotation_text="Objectif 70%")
-    fig_rem.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
-        yaxis_title="%", yaxis_range=[0,110], margin=dict(t=10,b=10))
-    st.plotly_chart(fig_rem, use_container_width=True)
+    if planning_path is None:
+        st.warning("Fichier planning introuvable. Le taux de remplissage necessite le fichier PLANNING.")
+        st.caption("Assurez-vous que le fichier PLANNING est synchronise depuis Google Drive.")
+    else:
+        from extractors.planning_extractor import extraire_taux_remplissage
+        res_plan = extraire_taux_remplissage(planning_path)
 
-    # Taux par jour de semaine
-    st.markdown('<div class="section-titre">Taux de remplissage par jour de la semaine</div>', unsafe_allow_html=True)
-    rem_dow = ca_j.groupby(["dow","jour_nom"])["taux_rempli"].mean().reset_index().sort_values("dow")
-    fig_rdow = go.Figure(go.Bar(x=rem_dow["jour_nom"], y=rem_dow["taux_rempli"],
-        marker_color=["#2563eb" if v==rem_dow["taux_rempli"].max() else "#93c5fd"
-                      for v in rem_dow["taux_rempli"]],
-        text=rem_dow["taux_rempli"].apply(lambda v: f"{v:.0f}%"), textposition="outside"))
-    fig_rdow.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white",
-        yaxis_title="%", yaxis_range=[0,110], margin=dict(t=10,b=10))
-    st.plotly_chart(fig_rdow, use_container_width=True)
+        if not res_plan["jours"]:
+            st.warning("Aucune donnee de reservation trouvee dans le planning.")
+            if res_plan["erreurs"]:
+                for e in res_plan["erreurs"]:
+                    st.caption(e)
+        else:
+            df_plan = pd.DataFrame(res_plan["jours"])
+            df_plan["date"] = pd.to_datetime(df_plan["date"])
+            df_plan["jour_nom"] = df_plan["date"].dt.day_name().map({
+                "Monday":"Lundi","Tuesday":"Mardi","Wednesday":"Mercredi",
+                "Thursday":"Jeudi","Friday":"Vendredi","Saturday":"Samedi","Sunday":"Dimanche"})
 
-    # Jours sous 50%
-    jours_faibles = ca_j[ca_j["taux_rempli"] < 50].copy()
-    jours_faibles["date_str"] = jours_faibles["date"].dt.strftime("%d/%m/%Y")
-    st.markdown(f'<div class="section-titre">Jours sous 50% de remplissage ({len(jours_faibles)} jours)</div>',
-        unsafe_allow_html=True)
-    if not jours_faibles.empty:
-        df_jf = jours_faibles[["date_str","jour_nom","total","taux_rempli"]].copy()
-        df_jf.columns = ["Date","Jour","CA (DH)","Taux (%)"]
-        df_jf["CA (DH)"] = df_jf["CA (DH)"].apply(lambda v: f"{v:,.0f}")
-        df_jf["Taux (%)"] = df_jf["Taux (%)"].apply(lambda v: f"{v:.0f}%")
-        st.dataframe(df_jf.iloc[::-1], use_container_width=True, hide_index=True, height=300)
+            # KPIs
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Taux moyen", f"{res_plan['taux_moyen']:.0f}%")
+            c2.metric("Creneaux reserves", f"{res_plan['total_reserves']:,}")
+            c3.metric("Creneaux disponibles", f"{res_plan['total_creneaux']:,}")
+            best = df_plan.loc[df_plan["taux"].idxmax()]
+            c4.metric("Meilleur jour", best["jour_nom"], f"{best['taux']:.0f}%")
 
-# ══════════════════════════════════════════════
-# ONGLET 5 — SEUIL DE RENTABILITÉ
-# ══════════════════════════════════════════════
+            # Graphique journalier
+            st.markdown('<div class="section-titre">Taux de remplissage par jour</div>', unsafe_allow_html=True)
+            fig_p = go.Figure(go.Bar(
+                x=df_plan["date"].dt.strftime("%d/%m"),
+                y=df_plan["taux"],
+                marker_color=["#10b981" if v>=60 else ("#f59e0b" if v>=40 else "#ef4444") for v in df_plan["taux"]],
+                text=df_plan["taux"].apply(lambda v: f"{v:.0f}%"),
+                textposition="outside",
+            ))
+            fig_p.add_hline(y=res_plan["taux_moyen"], line_dash="dash", line_color="#6b7280",
+                annotation_text=f"Moyenne {res_plan['taux_moyen']:.0f}%")
+            fig_p.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
+                yaxis_title="Taux (%)", yaxis_range=[0,105], margin=dict(t=20,b=10))
+            st.plotly_chart(fig_p, use_container_width=True)
+
+            # Taux par jour de la semaine
+            st.markdown('<div class="section-titre">Taux moyen par jour de la semaine</div>', unsafe_allow_html=True)
+            dow_plan = df_plan.groupby("jour_nom").agg(
+                taux=("taux","mean"), reserves=("reserves","sum"), total=("total","sum")).reset_index()
+            ordre = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"]
+            dow_plan["ordre"] = dow_plan["jour_nom"].map({j:i for i,j in enumerate(ordre)})
+            dow_plan = dow_plan.sort_values("ordre")
+            fig_dow = go.Figure(go.Bar(
+                x=dow_plan["jour_nom"], y=dow_plan["taux"],
+                marker_color=["#2563eb" if v==dow_plan["taux"].max() else "#93c5fd" for v in dow_plan["taux"]],
+                text=dow_plan["taux"].apply(lambda v: f"{v:.0f}%"), textposition="outside"))
+            fig_dow.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
+                yaxis_title="Taux (%)", yaxis_range=[0,105], margin=dict(t=10,b=10))
+            st.plotly_chart(fig_dow, use_container_width=True)
+
+            # Tableau detaille
+            st.markdown('<div class="section-titre">Detail par jour</div>', unsafe_allow_html=True)
+            df_disp = df_plan[["date","jour_nom","reserves","libres","total","taux"]].copy()
+            df_disp["date"] = df_disp["date"].dt.strftime("%d/%m/%Y")
+            df_disp["taux"] = df_disp["taux"].apply(lambda v: f"{v:.0f}%")
+            df_disp.columns = ["Date","Jour","Reserves","Libres","Total creneaux","Taux"]
+            st.dataframe(df_disp, use_container_width=True, hide_index=True, height=350)
+
+            st.download_button("📥 Taux remplissage CSV", df_plan.to_csv(index=False).encode(),
+                f"taux_remplissage_{datetime.date.today()}.csv", "text/csv")
+
+            st.caption("Regle : un creneau est compte comme reserve uniquement si une reservation y est inscrite. "
+                "Les creneaux vides sont consideres comme disponibles.")
+
+
 with tab_be:
     st.markdown('<div class="section-titre">Analyse du seuil de rentabilité</div>', unsafe_allow_html=True)
 
