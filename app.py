@@ -24,6 +24,8 @@ st.markdown("""
 .kpi-card{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
   padding:16px 18px;color:white;text-align:center;}
 .kpi-label{font-size:.78rem;opacity:.85;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.kpi-info{cursor:help;margin-left:5px;opacity:.7;font-size:.9rem;}
+.kpi-info:hover{opacity:1;}
 .kpi-value{font-size:1.6rem;font-weight:800;line-height:1.1;}
 .kpi-delta{font-size:.8rem;margin-top:5px;opacity:.9;}
 .alert-high{background:#fee2e2;border-left:4px solid #ef4444;padding:10px 14px;
@@ -218,9 +220,15 @@ def fpct(v, default="—"):
     if v is None or (isinstance(v, float) and np.isnan(v)): return default
     return f"{'+' if v>=0 else ''}{v:.1f}%"
 
-def kpi(label, value, delta=None):
+def kpi(label, value, delta=None, info=None):
     d = f'<div class="kpi-delta">{delta}</div>' if delta else ""
-    return f'<div class="kpi-card"><div class="kpi-label">{label}</div><div class="kpi-value">{value}</div>{d}</div>'
+    # Petit i d'info avec tooltip natif (au survol)
+    i = ""
+    if info:
+        info_clean = info.replace('"', "&quot;")
+        i = f'<span class="kpi-info" title="{info_clean}">&#9432;</span>'
+    return (f'<div class="kpi-card"><div class="kpi-label">{label}{i}</div>'
+            f'<div class="kpi-value">{value}</div>{d}</div>')
 
 COLORS = ["#2563eb","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4","#ec4899"]
 
@@ -362,38 +370,46 @@ if not ca_m.empty:
     c1,c2,c3,c4,c5,c6,c7,c8 = st.columns(8)
     with c1:
         st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
-            fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None), unsafe_allow_html=True)
+            fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None,
+            info="Chiffre d'affaires total du dernier mois (somme des CA journaliers depuis le Reporting CA). La variation en dessous est le MoM = evolution vs le mois precedent."), unsafe_allow_html=True)
     with c2:
         avg_jour = ca_j["total"].mean()
-        st.markdown(kpi("CA moyen / jour", fmt(avg_jour)), unsafe_allow_html=True)
+        st.markdown(kpi("CA moyen / jour", fmt(avg_jour),
+            info="Moyenne du CA journalier sur toute la periode analysee = CA total divise par le nombre de jours avec activite."), unsafe_allow_html=True)
     with c3:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
-                f"Marge {lc.get('marge_ebitda',0):.1f}%" if pd.notna(lc.get("marge_ebitda")) else None),
+                f"Marge {lc.get('marge_ebitda',0):.1f}%" if pd.notna(lc.get("marge_ebitda")) else None,
+                info="EBITDA = Produits - Charges (hors amortissements) du dernier mois du CPC. La marge = EBITDA / CA x 100."),
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
     with c4:
         st.markdown(kpi("Taux remplissage",
             f"{taux_planning:.0f}%" if taux_planning is not None else "—",
-            "planning reservations" if taux_planning is not None else None), unsafe_allow_html=True)
+            "planning reservations" if taux_planning is not None else None,
+            info="Base sur le planning de reservation. Taux = creneaux reserves (cellules avec un nom inscrit) divise par le nombre total de creneaux disponibles. Les cellules vides comptent comme creneaux libres."), unsafe_allow_html=True)
     with c5:
         st.markdown(kpi("Cross-check 2026",
             f"{nb_ok_2026}/{tot_cc_2026} OK",
-            f"{tot_cc_2026-nb_ok_2026} ecart(s)"), unsafe_allow_html=True)
+            f"{tot_cc_2026-nb_ok_2026} ecart(s)",
+            info="Verification a partir de janvier 2026 : compare les especes declarees dans le Reporting CA avec les entrees CA des caisses W et B pour chaque jour. OK = montants identiques. Ecart = difference detectee."), unsafe_allow_html=True)
     with c6:
         st.markdown(kpi(
             f"CA/Terrain {int(last['mois']):02d}/{int(last['annee'])}",
             f"{ca_par_ter:,.0f} DH" if ca_par_ter else "—",
-            f"{nb_ter_last} terrains"), unsafe_allow_html=True)
+            f"{nb_ter_last} terrains",
+            info="CA du mois divise par le nombre de terrains actifs. Terrains : 3.5 jusqu'a avril 2026, 4.5 en mai, 7.5 a partir de juin. Permet de comparer la performance a capacite variable."), unsafe_allow_html=True)
     with c7:
         st.markdown(kpi(
             ca_prec_label,
             fmt(ca_prec_val) if ca_prec_val else "—",
-            ca_prec_delta), unsafe_allow_html=True)
+            ca_prec_delta,
+            info="CA total du mois precedent (M-1). La variation indique l'evolution du dernier mois par rapport a celui-ci."), unsafe_allow_html=True)
     with c8:
-        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante</div>'
+        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante'
+            f'<span class="kpi-info" title="Score sur 100 = 4 composantes de 25 pts : Rentabilite (marge EBITDA), Croissance CA (MoM mois complets), Controle caisses 2026 (% sans ecart CA&gt;Caisses), Absence d anomalies critiques. Detail complet dans l onglet Alertes et Sante.">&#9432;</span></div>'
             f'<div class="kpi-value">{score_emoji} {score}/100</div>'
             f'<div class="kpi-delta">{len(anom)} anomalie(s)</div></div>', unsafe_allow_html=True)
 
