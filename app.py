@@ -21,13 +21,17 @@ st.markdown("""
 <style>
 .section-titre{font-size:1.15rem;font-weight:700;color:#1e3a5f;margin:22px 0 10px;
   border-bottom:2px solid #e5e7eb;padding-bottom:6px;}
-.kpi-card{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
-  padding:16px 18px;color:white;text-align:center;}
-.kpi-label{font-size:.78rem;opacity:.85;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
-.kpi-info{cursor:help;margin-left:5px;opacity:.7;font-size:.9rem;}
+.kpi-card{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:14px;
+  padding:18px 20px;color:white;text-align:left;min-height:118px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(30,58,95,0.12);transition:transform .15s ease;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-label{font-size:.72rem;opacity:.82;text-transform:uppercase;letter-spacing:.06em;
+  margin-bottom:8px;font-weight:500;line-height:1.3;}
+.kpi-info{cursor:help;margin-left:5px;opacity:.65;font-size:.85rem;}
 .kpi-info:hover{opacity:1;}
-.kpi-value{font-size:1.6rem;font-weight:800;line-height:1.1;}
-.kpi-delta{font-size:.8rem;margin-top:5px;opacity:.9;}
+.kpi-value{font-size:1.55rem;font-weight:800;line-height:1.05;letter-spacing:-.02em;}
+.kpi-delta{font-size:.75rem;margin-top:6px;opacity:.88;font-weight:400;}
 .alert-high{background:#fee2e2;border-left:4px solid #ef4444;padding:10px 14px;
   border-radius:6px;margin:4px 0;font-size:.88rem;}
 .alert-med{background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 14px;
@@ -367,7 +371,13 @@ if not ca_m.empty:
     except Exception:
         taux_planning = None
 
-    c1,c2,c3,c4,c5,c6,c7,c8 = st.columns(8)
+    # Ligne 1 : 4 KPIs principaux
+    r1c1, r1c2, r1c3, r1c4 = st.columns(4, gap="medium")
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    # Ligne 2 : 4 KPIs secondaires
+    r2c1, r2c2, r2c3, r2c4 = st.columns(4, gap="medium")
+    c1, c2, c3, c4 = r1c1, r1c2, r1c3, r1c4
+    c5, c6, c7, c8 = r2c1, r2c2, r2c3, r2c4
     with c1:
         st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None,
