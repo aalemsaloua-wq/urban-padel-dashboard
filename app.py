@@ -188,6 +188,19 @@ if D is None:
     st.stop()
 
 ca_j, ca_m, ca_mix = D["ca_j"], D["ca_m"], D["ca_mix"]
+
+# Securite : garantir les colonnes enrichies (au cas ou le cache renvoie une version incomplete)
+if not ca_j.empty:
+    if "dow" not in ca_j.columns:
+        ca_j["dow"] = ca_j["date"].dt.dayofweek
+    if "jour_nom" not in ca_j.columns:
+        ca_j["jour_nom"] = ca_j["dow"].map(JOURS_FR)
+    if "semaine" not in ca_j.columns:
+        ca_j["semaine"] = ca_j["date"].dt.isocalendar().week.astype(int)
+    if "taux_rempli" not in ca_j.columns:
+        ca_j["taux_rempli"] = (ca_j["total"] / ca_max_jour * 100).clip(0, 100)
+    if "pct_especes" not in ca_j.columns:
+        ca_j["pct_especes"] = (ca_j["espece"] / ca_j["total"].replace(0, np.nan) * 100).round(1)
 cc_full = D["cc"]
 cc = cc_full[cc_full["date"].dt.year >= 2026].copy() if not cc_full.empty else cc_full
 cpc_m, cpc_a = D["cpc_m"], D["cpc_a"]
