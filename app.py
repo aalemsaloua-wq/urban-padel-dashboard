@@ -359,16 +359,21 @@ if not ca_m.empty:
     taux_planning = None
     try:
         _plan_path = None
-        if os.path.isdir(dossier_data):
-            for _f in os.listdir(dossier_data):
-                if "PLANNING" in _f.upper() and _f.endswith(".xlsx"):
-                    _plan_path = os.path.join(dossier_data, _f)
-                    break
+        # Chercher le fichier planning dans data/ ET dans le dossier projet
+        _dossiers_recherche = [dossier_data, os.path.join(DOSSIER_PROJET, "data"), DOSSIER_PROJET]
+        for _dossier in _dossiers_recherche:
+            if _dossier and os.path.isdir(_dossier):
+                for _f in os.listdir(_dossier):
+                    if "PLANNING" in _f.upper() and _f.endswith(".xlsx"):
+                        _plan_path = os.path.join(_dossier, _f)
+                        break
+            if _plan_path:
+                break
         if _plan_path:
             from extractors.planning_extractor import extraire_taux_remplissage
             _res_plan = extraire_taux_remplissage(_plan_path)
             taux_planning = _res_plan.get("taux_moyen")
-    except Exception:
+    except Exception as _e:
         taux_planning = None
 
     # Ligne 1 : 4 KPIs principaux
