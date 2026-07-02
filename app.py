@@ -327,20 +327,39 @@ if not ca_m.empty:
     nb_ter_last   = get_terrains_kpi(last["annee"], last["mois"])
     ca_par_ter    = last["total_ca"] / nb_ter_last if nb_ter_last else None
 
-    # CA N-1 meme mois
-    ca_m_n1 = ca_m[(ca_m["mois"]==last["mois"]) & (ca_m["annee"]==last["annee"]-1)]
-    ca_n1_val = ca_m_n1.iloc[0]["total_ca"] if not ca_m_n1.empty else None
-    ca_n1_delta = None
-    if ca_n1_val and last["total_ca"]:
-        ca_n1_pct = (last["total_ca"] - ca_n1_val) / ca_n1_val * 100
-        ca_n1_delta = f"{ca_n1_pct:+.1f}% vs N-1"
+    # CA mois precedent (M-1)
+    ca_m_prec = ca_m.iloc[-2] if len(ca_m) >= 2 else None
+    ca_prec_val = ca_m_prec["total_ca"] if ca_m_prec is not None else None
+    ca_prec_delta = None
+    ca_prec_label = "CA mois precedent"
+    if ca_m_prec is not None:
+        ca_prec_label = f"CA {int(ca_m_prec['mois']):02d}/{int(ca_m_prec['annee'])}"
+        if ca_prec_val and last["total_ca"]:
+            ca_prec_pct = (last["total_ca"] - ca_prec_val) / ca_prec_val * 100
+            ca_prec_delta = f"{ca_prec_pct:+.1f}% vs M-1"
 
     # Cross-check 2026 uniquement
     cc_2026 = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
     nb_ok_2026  = (cc_2026["statut"]=="✅ OK").sum() if not cc_2026.empty else 0
     tot_cc_2026 = len(cc_2026)
 
-    c1,c2,c3,c4,c5,c6,c7 = st.columns(7)
+    # Taux de remplissage depuis le planning (pour KPI)
+    taux_planning = None
+    try:
+        _plan_path = None
+        if os.path.isdir(dossier_data):
+            for _f in os.listdir(dossier_data):
+                if "PLANNING" in _f.upper() and _f.endswith(".xlsx"):
+                    _plan_path = os.path.join(dossier_data, _f)
+                    break
+        if _plan_path:
+            from extractors.planning_extractor import extraire_taux_remplissage
+            _res_plan = extraire_taux_remplissage(_plan_path)
+            taux_planning = _res_plan.get("taux_moyen")
+    except Exception:
+        taux_planning = None
+
+    c1,c2,c3,c4,c5,c6,c7,c8 = st.columns(8)
     with c1:
         st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None), unsafe_allow_html=True)
@@ -356,20 +375,24 @@ if not ca_m.empty:
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
     with c4:
+        st.markdown(kpi("Taux remplissage",
+            f"{taux_planning:.0f}%" if taux_planning is not None else "—",
+            "planning reservations" if taux_planning is not None else None), unsafe_allow_html=True)
+    with c5:
         st.markdown(kpi("Cross-check 2026",
             f"{nb_ok_2026}/{tot_cc_2026} OK",
             f"{tot_cc_2026-nb_ok_2026} ecart(s)"), unsafe_allow_html=True)
-    with c5:
+    with c6:
         st.markdown(kpi(
             f"CA/Terrain {int(last['mois']):02d}/{int(last['annee'])}",
             f"{ca_par_ter:,.0f} DH" if ca_par_ter else "—",
             f"{nb_ter_last} terrains"), unsafe_allow_html=True)
-    with c6:
-        st.markdown(kpi(
-            f"CA N-1 (meme mois)",
-            fmt(ca_n1_val) if ca_n1_val else "—",
-            ca_n1_delta), unsafe_allow_html=True)
     with c7:
+        st.markdown(kpi(
+            ca_prec_label,
+            fmt(ca_prec_val) if ca_prec_val else "—",
+            ca_prec_delta), unsafe_allow_html=True)
+    with c8:
         st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante</div>'
             f'<div class="kpi-value">{score_emoji} {score}/100</div>'
             f'<div class="kpi-delta">{len(anom)} anomalie(s)</div></div>', unsafe_allow_html=True)
