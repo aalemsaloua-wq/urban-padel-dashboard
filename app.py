@@ -339,16 +339,43 @@ if not ca_m.empty:
     nb_ter_last   = get_terrains_kpi(last["annee"], last["mois"])
     ca_par_ter    = last["total_ca"] / nb_ter_last if nb_ter_last else None
 
-    # CA mois precedent (M-1)
+    # ── CA mois en cours (N) ──────────────────────────────
+    ca_n_label = f"CA {int(last['mois']):02d}/{int(last['annee'])}"
+    ca_n_val   = last["total_ca"]
+
+    # ── CA mois precedent (N-1) avec variation vs N-2 ─────
     ca_m_prec = ca_m.iloc[-2] if len(ca_m) >= 2 else None
+    ca_m_prec2 = ca_m.iloc[-3] if len(ca_m) >= 3 else None
     ca_prec_val = ca_m_prec["total_ca"] if ca_m_prec is not None else None
     ca_prec_delta = None
     ca_prec_label = "CA mois precedent"
     if ca_m_prec is not None:
         ca_prec_label = f"CA {int(ca_m_prec['mois']):02d}/{int(ca_m_prec['annee'])}"
-        if ca_prec_val and last["total_ca"]:
-            ca_prec_pct = (last["total_ca"] - ca_prec_val) / ca_prec_val * 100
-            ca_prec_delta = f"{ca_prec_pct:+.1f}% vs M-1"
+        # Variation N-1 vs N-2
+        if ca_m_prec2 is not None and ca_m_prec2["total_ca"]:
+            ca_prec_pct = (ca_prec_val - ca_m_prec2["total_ca"]) / ca_m_prec2["total_ca"] * 100
+            ca_prec_delta = f"{ca_prec_pct:+.1f}% vs mois avant"
+
+    # ── CA moyen/jour mois en cours (jusqu a hier) ────────
+    import datetime as _dt
+    aujourd_hui = _dt.date.today()
+    # Jours du mois en cours dans les donnees CA
+    ca_j_mois_courant = ca_j[
+        (ca_j["date"].dt.year == int(last["annee"])) &
+        (ca_j["date"].dt.month == int(last["mois"]))
+    ]
+    # Si le mois en cours = mois calendaire actuel, on s arrete a hier
+    if int(last["annee"]) == aujourd_hui.year and int(last["mois"]) == aujourd_hui.month:
+        ca_j_jusqu_hier = ca_j_mois_courant[ca_j_mois_courant["date"].dt.day < aujourd_hui.day]
+    else:
+        ca_j_jusqu_hier = ca_j_mois_courant
+    nb_jours_ecoules = len(ca_j_jusqu_hier)
+    ca_moyen_jour_courant = (ca_j_jusqu_hier["total"].sum() / nb_jours_ecoules) if nb_jours_ecoules > 0 else None
+
+    # ── CA moyen/jour mois precedent (mois complet) ───────
+    ca_moyen_jour_prec = None
+    if ca_m_prec is not None and ca_m_prec.get("nb_jours"):
+        ca_moyen_jour_prec = ca_m_prec["total_ca"] / ca_m_prec["nb_jours"]
 
     # Cross-check 2026 uniquement
     cc_2026 = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
@@ -376,22 +403,31 @@ if not ca_m.empty:
     except Exception as _e:
         taux_planning = None
 
-    # Ligne 1 : 4 KPIs principaux
+    # ═══════════════ BARRE KPI — 2 lignes ═══════════════
+    # Ligne 1 : Performance CA (CA en cours, CA mois prec, CA moyen/j, CA moyen/j prec)
     r1c1, r1c2, r1c3, r1c4 = st.columns(4, gap="medium")
+    with r1c1:
+        st.markdown(kpi(ca_n_label, fmt(ca_n_val),
+            info="Chiffre d'affaires total du mois en cours (somme des CA journaliers)."), unsafe_allow_html=True)
+    with r1c2:
+        st.markdown(kpi(ca_prec_label, fmt(ca_prec_val) if ca_prec_val else "—",
+            ca_prec_delta,
+            info="CA total du mois precedent. La variation compare ce mois precedent avec le mois encore avant (N-1 vs N-2)."), unsafe_allow_html=True)
+    with r1c3:
+        st.markdown(kpi("CA moyen / jour (en cours)",
+            fmt(ca_moyen_jour_courant) if ca_moyen_jour_courant else "—",
+            f"sur {nb_jours_ecoules} jours" if ca_moyen_jour_courant else None,
+            info="CA du mois en cours divise par le nombre de jours ecoules jusqu'a hier (le jour d'aujourd'hui n'est pas compte car incomplet)."), unsafe_allow_html=True)
+    with r1c4:
+        st.markdown(kpi("CA moyen / jour (mois prec.)",
+            fmt(ca_moyen_jour_prec) if ca_moyen_jour_prec else "—",
+            info="CA total du mois precedent divise par le nombre total de jours de ce mois (mois complet)."), unsafe_allow_html=True)
+
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-    # Ligne 2 : 4 KPIs secondaires
-    r2c1, r2c2, r2c3, r2c4 = st.columns(4, gap="medium")
-    c1, c2, c3, c4 = r1c1, r1c2, r1c3, r1c4
-    c5, c6, c7, c8 = r2c1, r2c2, r2c3, r2c4
-    with c1:
-        st.markdown(kpi(f"CA {int(last['mois']):02d}/{int(last['annee'])}",
-            fmt(last["total_ca"]), fpct(last.get("ca_mom_pct")) if prev is not None else None,
-            info="Chiffre d'affaires total du dernier mois (somme des CA journaliers depuis le Reporting CA). La variation en dessous est le MoM = evolution vs le mois precedent."), unsafe_allow_html=True)
-    with c2:
-        avg_jour = ca_j["total"].mean()
-        st.markdown(kpi("CA moyen / jour", fmt(avg_jour),
-            info="Moyenne du CA journalier sur toute la periode analysee = CA total divise par le nombre de jours avec activite."), unsafe_allow_html=True)
-    with c3:
+
+    # Ligne 2 : Operations & sante (EBITDA, Taux, Cross-check, CA/Terrain, Score)
+    r2c1, r2c2, r2c3, r2c4, r2c5 = st.columns(5, gap="medium")
+    with r2c1:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
@@ -400,31 +436,25 @@ if not ca_m.empty:
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
-    with c4:
+    with r2c2:
         st.markdown(kpi("Taux remplissage",
             f"{taux_planning:.0f}%" if taux_planning is not None else "—",
             "planning reservations" if taux_planning is not None else None,
-            info="Base sur le planning de reservation. Taux = creneaux reserves (cellules avec un nom inscrit) divise par le nombre total de creneaux disponibles. Les cellules vides comptent comme creneaux libres."), unsafe_allow_html=True)
-    with c5:
+            info="Base sur le planning de reservation. Taux = creneaux reserves (cellules avec un nom) / total des creneaux. Les cellules vides comptent comme libres."), unsafe_allow_html=True)
+    with r2c3:
         st.markdown(kpi("Cross-check 2026",
             f"{nb_ok_2026}/{tot_cc_2026} OK",
             f"{tot_cc_2026-nb_ok_2026} ecart(s)",
-            info="Verification a partir de janvier 2026 : compare les especes declarees dans le Reporting CA avec les entrees CA des caisses W et B pour chaque jour. OK = montants identiques. Ecart = difference detectee."), unsafe_allow_html=True)
-    with c6:
+            info="Verification a partir de janvier 2026 : compare les especes du Reporting CA avec les entrees CA des caisses W et B. OK = montants identiques."), unsafe_allow_html=True)
+    with r2c4:
         st.markdown(kpi(
             f"CA/Terrain {int(last['mois']):02d}/{int(last['annee'])}",
             f"{ca_par_ter:,.0f} DH" if ca_par_ter else "—",
             f"{nb_ter_last} terrains",
-            info="CA du mois divise par le nombre de terrains actifs. Terrains : 3.5 jusqu'a avril 2026, 4.5 en mai, 7.5 a partir de juin. Permet de comparer la performance a capacite variable."), unsafe_allow_html=True)
-    with c7:
-        st.markdown(kpi(
-            ca_prec_label,
-            fmt(ca_prec_val) if ca_prec_val else "—",
-            ca_prec_delta,
-            info="CA total du mois precedent (M-1). La variation indique l'evolution du dernier mois par rapport a celui-ci."), unsafe_allow_html=True)
-    with c8:
+            info="CA du mois divise par le nombre de terrains actifs. Terrains : 3.5 jusqu'a avril 2026, 4.5 en mai, 7.5 a partir de juin."), unsafe_allow_html=True)
+    with r2c5:
         st.markdown(f'<div class="kpi-card"><div class="kpi-label">Score sante'
-            f'<span class="kpi-info" title="Score sur 100 = 4 composantes de 25 pts : Rentabilite (marge EBITDA), Croissance CA (MoM mois complets), Controle caisses 2026 (% sans ecart CA&gt;Caisses), Absence d anomalies critiques. Detail complet dans l onglet Alertes et Sante.">&#9432;</span></div>'
+            f'<span class="kpi-info" title="Score sur 100 = 4 composantes de 25 pts : Rentabilite, Croissance CA, Controle caisses 2026, Absence d anomalies. Detail dans l onglet Alertes.">&#9432;</span></div>'
             f'<div class="kpi-value">{score_emoji} {score}/100</div>'
             f'<div class="kpi-delta">{len(anom)} anomalie(s)</div></div>', unsafe_allow_html=True)
 
