@@ -19,29 +19,90 @@ st.set_page_config(page_title="Urban Padel — Dashboard", page_icon="🎾",
 
 st.markdown("""
 <style>
-.section-titre{font-size:1.15rem;font-weight:700;color:#1e3a5f;margin:22px 0 10px;
-  border-bottom:2px solid #e5e7eb;padding-bottom:6px;}
-.kpi-card{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:14px;
-  padding:18px 20px;color:white;text-align:left;min-height:118px;
-  display:flex;flex-direction:column;justify-content:space-between;
-  box-shadow:0 2px 8px rgba(30,58,95,0.12);transition:transform .15s ease;}
-.kpi-card:hover{transform:translateY(-2px);}
-.kpi-label{font-size:.72rem;opacity:.82;text-transform:uppercase;letter-spacing:.06em;
-  margin-bottom:8px;font-weight:500;line-height:1.3;}
-.kpi-info{cursor:help;margin-left:5px;opacity:.65;font-size:.85rem;}
-.kpi-info:hover{opacity:1;}
-.kpi-value{font-size:1.55rem;font-weight:800;line-height:1.05;letter-spacing:-.02em;}
-.kpi-delta{font-size:.75rem;margin-top:6px;opacity:.88;font-weight:400;}
-.alert-high{background:#fee2e2;border-left:4px solid #ef4444;padding:10px 14px;
-  border-radius:6px;margin:4px 0;font-size:.88rem;}
-.alert-med{background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 14px;
-  border-radius:6px;margin:4px 0;font-size:.88rem;}
-.score-green{background:#d1fae5;color:#065f46;border-radius:8px;padding:8px 16px;
-  font-weight:700;font-size:1.1rem;display:inline-block;}
-.score-orange{background:#fef3c7;color:#92400e;border-radius:8px;padding:8px 16px;
-  font-weight:700;font-size:1.1rem;display:inline-block;}
-.score-red{background:#fee2e2;color:#991b1b;border-radius:8px;padding:8px 16px;
-  font-weight:700;font-size:1.1rem;display:inline-block;}
+/* ═══════════ THEME MODERNE & PRO ═══════════ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif; }
+
+/* Titres de section */
+.section-titre{
+  font-size:1.05rem; font-weight:700; color:#0f172a;
+  margin:26px 0 14px; padding-bottom:10px;
+  border-bottom:1px solid #e2e8f0; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:8px;
+}
+.section-titre::before{
+  content:""; width:4px; height:18px; border-radius:2px;
+  background:linear-gradient(180deg,#3b82f6,#6366f1);
+}
+
+/* ─────── Cartes KPI modernes (blanches, accent colore) ─────── */
+.kpi-card{
+  background:#ffffff; border-radius:16px; padding:20px 22px;
+  border:1px solid #eef2f7;
+  box-shadow:0 1px 3px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
+  min-height:130px; position:relative; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:space-between;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+
+.kpi-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 4px 12px rgba(15,23,42,.08), 0 16px 32px rgba(15,23,42,.08);
+  border-color:#dbeafe;
+}
+.kpi-label{
+  font-size:.7rem; color:#64748b; text-transform:uppercase;
+  letter-spacing:.07em; margin-bottom:10px; font-weight:600; line-height:1.35;
+}
+.kpi-info{ cursor:help; margin-left:5px; color:#cbd5e1; font-size:.8rem; }
+.kpi-info:hover{ color:#3b82f6; }
+.kpi-value{
+  font-size:1.6rem; font-weight:800; color:#0f172a;
+  line-height:1.05; letter-spacing:-.03em;
+}
+.kpi-delta{
+  font-size:.75rem; margin-top:8px; font-weight:600;
+  color:#059669; display:inline-flex; align-items:center; gap:4px;
+}
+
+/* Variantes couleur par accent (via nth-child pas possible, on garde bleu) */
+
+/* Alertes */
+.alert-high{
+  background:#fef2f2; border-left:3px solid #ef4444; padding:12px 16px;
+  border-radius:8px; margin:6px 0; font-size:.88rem; color:#7f1d1d;
+}
+.alert-med{
+  background:#fffbeb; border-left:3px solid #f59e0b; padding:12px 16px;
+  border-radius:8px; margin:6px 0; font-size:.88rem; color:#78350f;
+}
+
+/* Badges score */
+.score-green{ background:#ecfdf5; color:#065f46; border-radius:10px;
+  padding:10px 20px; font-weight:700; font-size:1.1rem; display:inline-block;
+  border:1px solid #a7f3d0; }
+.score-orange{ background:#fffbeb; color:#92400e; border-radius:10px;
+  padding:10px 20px; font-weight:700; font-size:1.1rem; display:inline-block;
+  border:1px solid #fde68a; }
+.score-red{ background:#fef2f2; color:#991b1b; border-radius:10px;
+  padding:10px 20px; font-weight:700; font-size:1.1rem; display:inline-block;
+  border:1px solid #fecaca; }
+
+/* Onglets plus modernes */
+.stTabs [data-baseweb="tab-list"]{ gap:4px; border-bottom:1px solid #e2e8f0; }
+.stTabs [data-baseweb="tab"]{
+  font-weight:600; font-size:.9rem; color:#64748b;
+  padding:10px 16px; border-radius:8px 8px 0 0;
+}
+.stTabs [aria-selected="true"]{ color:#3b82f6 !important; }
+
+/* Titre principal */
+h1{ font-weight:800 !important; letter-spacing:-.03em !important; color:#0f172a !important; }
+
+/* Metriques Streamlit natives */
+[data-testid="stMetricValue"]{ font-weight:800; color:#0f172a; }
+[data-testid="stMetricLabel"]{ font-weight:600; color:#64748b; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -224,14 +285,17 @@ def fpct(v, default="—"):
     if v is None or (isinstance(v, float) and np.isnan(v)): return default
     return f"{'+' if v>=0 else ''}{v:.1f}%"
 
-def kpi(label, value, delta=None, info=None):
+def kpi(label, value, delta=None, info=None, accent="#3b82f6", accent2="#6366f1"):
     d = f'<div class="kpi-delta">{delta}</div>' if delta else ""
-    # Petit i d'info avec tooltip natif (au survol)
     i = ""
     if info:
         info_clean = info.replace('"', "&quot;")
         i = f'<span class="kpi-info" title="{info_clean}">&#9432;</span>'
-    return (f'<div class="kpi-card"><div class="kpi-label">{label}{i}</div>'
+    # Barre d'accent personnalisee par groupe
+    bar = f'<div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,{accent},{accent2});"></div>'
+    return (f'<div class="kpi-card" style="--none:0">'
+            f'{bar}'
+            f'<div class="kpi-label">{label}{i}</div>'
             f'<div class="kpi-value">{value}</div>{d}</div>')
 
 COLORS = ["#2563eb","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4","#ec4899"]
@@ -445,20 +509,24 @@ if not ca_m.empty:
     r1c1, r1c2, r1c3, r1c4 = st.columns(4, gap="medium")
     with r1c1:
         st.markdown(kpi(ca_n_label, fmt(ca_n_val),
-            info="Chiffre d'affaires total du mois en cours (somme des CA journaliers)."), unsafe_allow_html=True)
+            info="Chiffre d'affaires total du mois en cours (somme des CA journaliers).",
+            accent="#2563eb", accent2="#3b82f6"), unsafe_allow_html=True)
     with r1c2:
         st.markdown(kpi(ca_prec_label, fmt(ca_prec_val) if ca_prec_val else "—",
             ca_prec_delta,
-            info="CA total du mois precedent. La variation compare ce mois precedent avec le mois encore avant (N-1 vs N-2)."), unsafe_allow_html=True)
+            info="CA total du mois precedent. La variation compare ce mois precedent avec le mois encore avant (N-1 vs N-2).",
+            accent="#2563eb", accent2="#3b82f6"), unsafe_allow_html=True)
     with r1c3:
         st.markdown(kpi("CA moyen / jour (en cours)",
             fmt(ca_moyen_jour_courant) if ca_moyen_jour_courant else "—",
             f"sur {nb_jours_ecoules} jours" if ca_moyen_jour_courant else None,
-            info="CA du mois en cours divise par le nombre de jours ecoules jusqu'a la veille (aujourd'hui non compte)."), unsafe_allow_html=True)
+            info="CA du mois en cours divise par le nombre de jours ecoules jusqu'a la veille (aujourd'hui non compte).",
+            accent="#7c3aed", accent2="#8b5cf6"), unsafe_allow_html=True)
     with r1c4:
         st.markdown(kpi("CA moyen / jour (mois prec.)",
             fmt(ca_moyen_jour_prec) if ca_moyen_jour_prec else "—",
-            info="CA total du mois precedent divise par son nombre total de jours (mois complet)."), unsafe_allow_html=True)
+            info="CA total du mois precedent divise par son nombre total de jours (mois complet).",
+            accent="#7c3aed", accent2="#8b5cf6"), unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
@@ -469,25 +537,29 @@ if not ca_m.empty:
             "CA prev. / terrain (en cours)",
             f"{ca_prev_par_terrain:,.0f} DH" if ca_prev_par_terrain else "—",
             f"{nb_ter_last} terrains" if ca_prev_par_terrain else None,
-            info="CA previsionnel du mois en cours divise par le nombre de terrains actifs."), unsafe_allow_html=True)
+            info="CA previsionnel du mois en cours divise par le nombre de terrains actifs.",
+            accent="#0d9488", accent2="#14b8a6"), unsafe_allow_html=True)
     with r2c2:
         st.markdown(kpi(
             "CA / terrain (mois prec.)",
             f"{ca_par_terrain_prec:,.0f} DH" if ca_par_terrain_prec else "—",
             f"{nb_ter_prec} terrains" if ca_par_terrain_prec else None,
-            info="CA total du mois precedent divise par son nombre de terrains. A comparer avec le previsionnel par terrain du mois en cours."), unsafe_allow_html=True)
+            info="CA total du mois precedent divise par son nombre de terrains. A comparer avec le previsionnel par terrain du mois en cours.",
+            accent="#0d9488", accent2="#14b8a6"), unsafe_allow_html=True)
     with r2c3:
         st.markdown(kpi(
             f"CA previsionnel {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(ca_previsionnel) if ca_previsionnel else "—",
             f"sur {nb_jours_mois_total} jours" if ca_previsionnel else None,
-            info=f"Projection du CA pour le mois complet = (CA jusqu'a la veille / {nb_jours_ecoules} jours ecoules) x {nb_jours_mois_total} jours du mois."), unsafe_allow_html=True)
+            info=f"Projection du CA pour le mois complet = (CA jusqu'a la veille / {nb_jours_ecoules} jours ecoules) x {nb_jours_mois_total} jours du mois.",
+            accent="#d97706", accent2="#f59e0b"), unsafe_allow_html=True)
     with r2c4:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
                 f"Marge {lc.get('marge_ebitda',0):.1f}%" if pd.notna(lc.get("marge_ebitda")) else None,
-                info="EBITDA = Produits - Charges (hors amortissements) du dernier mois du CPC. Marge = EBITDA / CA x 100."),
+                info="EBITDA = Produits - Charges (hors amortissements) du dernier mois du CPC. Marge = EBITDA / CA x 100.",
+                accent="#d97706", accent2="#f59e0b"),
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
@@ -495,7 +567,8 @@ if not ca_m.empty:
         st.markdown(kpi("Meilleur mois EBITDA",
             fmt(best_ebitda_val) if best_ebitda_val else "—",
             best_ebitda_label if best_ebitda_label else None,
-            info="Le mois ou l'EBITDA a ete le plus eleve sur toute la periode analysee, avec son montant."), unsafe_allow_html=True)
+            info="Le mois ou l'EBITDA a ete le plus eleve sur toute la periode analysee, avec son montant.",
+            accent="#059669", accent2="#10b981"), unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
