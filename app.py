@@ -356,21 +356,25 @@ if not ca_m.empty:
             ca_prec_pct = (ca_prec_val - ca_m_prec2["total_ca"]) / ca_m_prec2["total_ca"] * 100
             ca_prec_delta = f"{ca_prec_pct:+.1f}% vs mois avant"
 
-    # ── CA moyen/jour mois en cours (jusqu a hier) ────────
+    # ── CA moyen/jour mois en cours (jusqu a la veille) ───
+    # Option A : on divise par le nombre de jours CALENDAIRES ecoules
+    # jusqu a hier, meme si certains jours n ont pas encore de donnees CA.
     import datetime as _dt
     aujourd_hui = _dt.date.today()
-    # Jours du mois en cours dans les donnees CA
     ca_j_mois_courant = ca_j[
         (ca_j["date"].dt.year == int(last["annee"])) &
         (ca_j["date"].dt.month == int(last["mois"]))
     ]
-    # Si le mois en cours = mois calendaire actuel, on s arrete a hier
     if int(last["annee"]) == aujourd_hui.year and int(last["mois"]) == aujourd_hui.month:
-        ca_j_jusqu_hier = ca_j_mois_courant[ca_j_mois_courant["date"].dt.day < aujourd_hui.day]
+        # Mois calendaire actuel : jours ecoules = date d hier = (aujourd hui - 1)
+        nb_jours_ecoules = aujourd_hui.day - 1
+        ca_somme_courant = ca_j_mois_courant[ca_j_mois_courant["date"].dt.day < aujourd_hui.day]["total"].sum()
     else:
-        ca_j_jusqu_hier = ca_j_mois_courant
-    nb_jours_ecoules = len(ca_j_jusqu_hier)
-    ca_moyen_jour_courant = (ca_j_jusqu_hier["total"].sum() / nb_jours_ecoules) if nb_jours_ecoules > 0 else None
+        # Mois passe : on prend tous les jours du mois presents dans les donnees
+        nb_jours_ecoules = ca_j_mois_courant["date"].dt.day.max() if not ca_j_mois_courant.empty else 0
+        nb_jours_ecoules = int(nb_jours_ecoules) if nb_jours_ecoules else 0
+        ca_somme_courant = ca_j_mois_courant["total"].sum()
+    ca_moyen_jour_courant = (ca_somme_courant / nb_jours_ecoules) if nb_jours_ecoules > 0 else None
 
     # ── CA moyen/jour mois precedent (mois complet) ───────
     ca_moyen_jour_prec = None
