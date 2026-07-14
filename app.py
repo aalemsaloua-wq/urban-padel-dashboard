@@ -19,150 +19,122 @@ st.set_page_config(page_title="Urban Padel — Dashboard", page_icon="🎾",
 
 st.markdown("""
 <style>
-/* ═══════════ THEME SOMBRE PREMIUM ═══════════ */
+/* ═══════════ THEME CLAIR PREMIUM CORPORATE ═══════════ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;600;700&display=swap');
 
-/* Fond global sombre avec degrade subtil */
 .stApp{
   background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(59,130,246,.10), transparent 60%),
-    radial-gradient(1000px 500px at 90% 10%, rgba(139,92,246,.10), transparent 55%),
-    linear-gradient(180deg,#0a0e1a 0%, #0d1220 55%, #0a0e1a 100%);
-  color:#e2e8f0;
+    radial-gradient(900px 500px at 100% 0%, rgba(30,64,175,.04), transparent 60%),
+    linear-gradient(180deg,#fafbfc 0%, #f6f8fb 100%);
+  color:#0f172a;
 }
 html, body, [class*="css"]{ font-family:'Inter',-apple-system,sans-serif; }
 
-/* Sidebar sombre */
+/* Sidebar corporate */
 [data-testid="stSidebar"]{
-  background:linear-gradient(180deg,#0d1220,#0a0e1a);
-  border-right:1px solid rgba(148,163,184,.10);
+  background:linear-gradient(180deg,#ffffff,#f8fafc);
+  border-right:1px solid #e8edf3;
 }
-[data-testid="stSidebar"] *{ color:#cbd5e1 !important; }
 
-/* Titre principal */
+/* Titre principal - serif elegant */
 h1{
-  font-family:'Space Grotesk',sans-serif !important;
-  font-weight:700 !important; letter-spacing:-.02em !important;
-  color:#f8fafc !important;
-  text-shadow:0 2px 20px rgba(59,130,246,.15);
+  font-family:'Fraunces',Georgia,serif !important;
+  font-weight:600 !important; letter-spacing:-.01em !important;
+  color:#0f172a !important;
 }
-h2,h3{ color:#f1f5f9 !important; }
-p, .stCaption, [data-testid="stCaptionContainer"]{ color:#94a3b8 !important; }
+h2,h3{ color:#1e293b !important; font-weight:700 !important; }
 
 /* Titres de section */
 .section-titre{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:1.05rem; font-weight:600; color:#f1f5f9;
+  font-size:1.05rem; font-weight:700; color:#0f172a;
   margin:28px 0 16px; padding-bottom:12px;
-  border-bottom:1px solid rgba(148,163,184,.12);
+  border-bottom:1px solid #e8edf3;
   display:flex; align-items:center; gap:10px; letter-spacing:-.01em;
+  text-transform:none;
 }
 .section-titre::before{
-  content:""; width:4px; height:20px; border-radius:3px;
-  background:linear-gradient(180deg,#60a5fa,#a78bfa);
-  box-shadow:0 0 12px rgba(96,165,250,.5);
+  content:""; width:3px; height:19px; border-radius:2px;
+  background:#1e40af;
 }
 
-/* ─────── Cartes KPI premium (glassmorphism) ─────── */
+/* ─────── Cartes KPI premium corporate ─────── */
 .kpi-card{
-  background:linear-gradient(145deg, rgba(30,41,59,.55), rgba(15,23,42,.55));
-  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  border-radius:18px; padding:22px 24px;
-  border:1px solid rgba(148,163,184,.12);
-  box-shadow:0 4px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-  min-height:135px; position:relative; overflow:hidden;
+  background:#ffffff; border-radius:14px; padding:22px 24px;
+  border:1px solid #eaeff5;
+  box-shadow:0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.05);
+  min-height:132px; position:relative; overflow:hidden;
   display:flex; flex-direction:column; justify-content:space-between;
-  transition:all .25s cubic-bezier(.4,0,.2,1);
+  transition:all .22s cubic-bezier(.4,0,.2,1);
 }
 .kpi-card:hover{
-  transform:translateY(-4px);
-  border-color:rgba(96,165,250,.35);
-  box-shadow:0 12px 40px rgba(0,0,0,.45), 0 0 30px rgba(59,130,246,.12), inset 0 1px 0 rgba(255,255,255,.06);
+  transform:translateY(-3px);
+  box-shadow:0 2px 4px rgba(16,24,40,.06), 0 12px 28px rgba(16,24,40,.10);
+  border-color:#dde5ef;
 }
 .kpi-label{
-  font-size:.7rem; color:#94a3b8; text-transform:uppercase;
+  font-size:.7rem; color:#64748b; text-transform:uppercase;
   letter-spacing:.08em; margin-bottom:12px; font-weight:600; line-height:1.4;
 }
-.kpi-info{ cursor:help; margin-left:5px; color:#475569; font-size:.8rem; }
-.kpi-info:hover{ color:#60a5fa; }
+.kpi-info{ cursor:help; margin-left:5px; color:#cbd5e1; font-size:.8rem; }
+.kpi-info:hover{ color:#1e40af; }
 .kpi-value{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:1.65rem; font-weight:700; color:#f8fafc;
-  line-height:1.05; letter-spacing:-.02em;
+  font-family:'Fraunces',Georgia,serif;
+  font-size:1.7rem; font-weight:600; color:#0f172a;
+  line-height:1.05; letter-spacing:-.01em;
 }
 .kpi-delta{
   font-size:.75rem; margin-top:10px; font-weight:600;
-  color:#34d399; display:inline-flex; align-items:center; gap:4px;
+  color:#047857; display:inline-flex; align-items:center; gap:4px;
 }
 
 /* Alertes */
 .alert-high{
-  background:rgba(239,68,68,.10); border-left:3px solid #ef4444;
-  padding:13px 16px; border-radius:10px; margin:7px 0; font-size:.88rem; color:#fca5a5;
+  background:#fef2f2; border-left:3px solid #dc2626; padding:13px 16px;
+  border-radius:8px; margin:7px 0; font-size:.88rem; color:#991b1b;
 }
 .alert-med{
-  background:rgba(245,158,11,.10); border-left:3px solid #f59e0b;
-  padding:13px 16px; border-radius:10px; margin:7px 0; font-size:.88rem; color:#fcd34d;
+  background:#fffbeb; border-left:3px solid #d97706; padding:13px 16px;
+  border-radius:8px; margin:7px 0; font-size:.88rem; color:#92400e;
 }
 
 /* Badges score */
-.score-green{ background:rgba(16,185,129,.12); color:#6ee7b7; border-radius:12px;
+.score-green{ background:#f0fdf4; color:#166534; border-radius:10px;
   padding:11px 22px; font-weight:700; font-size:1.15rem; display:inline-block;
-  border:1px solid rgba(16,185,129,.3); box-shadow:0 0 20px rgba(16,185,129,.15); }
-.score-orange{ background:rgba(245,158,11,.12); color:#fcd34d; border-radius:12px;
+  border:1px solid #bbf7d0; }
+.score-orange{ background:#fffbeb; color:#92400e; border-radius:10px;
   padding:11px 22px; font-weight:700; font-size:1.15rem; display:inline-block;
-  border:1px solid rgba(245,158,11,.3); box-shadow:0 0 20px rgba(245,158,11,.15); }
-.score-red{ background:rgba(239,68,68,.12); color:#fca5a5; border-radius:12px;
+  border:1px solid #fde68a; }
+.score-red{ background:#fef2f2; color:#991b1b; border-radius:10px;
   padding:11px 22px; font-weight:700; font-size:1.15rem; display:inline-block;
-  border:1px solid rgba(239,68,68,.3); box-shadow:0 0 20px rgba(239,68,68,.15); }
+  border:1px solid #fecaca; }
 
-/* Onglets premium */
-.stTabs [data-baseweb="tab-list"]{
-  gap:6px; border-bottom:1px solid rgba(148,163,184,.12);
-  background:transparent;
-}
+/* Onglets corporate */
+.stTabs [data-baseweb="tab-list"]{ gap:4px; border-bottom:1px solid #e8edf3; }
 .stTabs [data-baseweb="tab"]{
-  font-weight:600; font-size:.88rem; color:#94a3b8;
-  padding:11px 18px; border-radius:10px 10px 0 0; background:transparent;
+  font-weight:600; font-size:.88rem; color:#64748b;
+  padding:11px 18px; border-radius:8px 8px 0 0;
 }
-.stTabs [data-baseweb="tab"]:hover{ color:#cbd5e1; background:rgba(148,163,184,.06); }
-.stTabs [aria-selected="true"]{
-  color:#60a5fa !important; background:rgba(59,130,246,.08) !important;
-}
+.stTabs [data-baseweb="tab"]:hover{ color:#334155; background:#f1f5f9; }
+.stTabs [aria-selected="true"]{ color:#1e40af !important; }
 
 /* Metriques natives */
-[data-testid="stMetricValue"]{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:#f8fafc; }
-[data-testid="stMetricLabel"]{ font-weight:600; color:#94a3b8; }
-[data-testid="stMetricDelta"]{ color:#34d399; }
+[data-testid="stMetricValue"]{ font-family:'Fraunces',serif; font-weight:600; color:#0f172a; }
+[data-testid="stMetricLabel"]{ font-weight:600; color:#64748b; }
 
 /* Tableaux */
-[data-testid="stDataFrame"]{
-  border-radius:14px; overflow:hidden;
-  border:1px solid rgba(148,163,184,.12);
-}
+[data-testid="stDataFrame"]{ border-radius:12px; overflow:hidden; border:1px solid #eaeff5; }
 
 /* Boutons */
-.stButton button{
-  border-radius:10px; font-weight:600; border:1px solid rgba(148,163,184,.2);
-  background:rgba(30,41,59,.6); color:#e2e8f0;
-}
-.stButton button:hover{
-  border-color:rgba(96,165,250,.5); background:rgba(59,130,246,.15); color:#f8fafc;
-}
 .stDownloadButton button{
-  border-radius:10px; font-weight:600;
-  background:linear-gradient(135deg,#3b82f6,#6366f1); color:white; border:none;
+  border-radius:9px; font-weight:600;
+  background:#1e40af; color:white; border:none;
 }
-
-/* Inputs */
-.stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div{
-  background:rgba(30,41,59,.6) !important; color:#e2e8f0 !important;
-  border-color:rgba(148,163,184,.2) !important; border-radius:10px !important;
+.stDownloadButton button:hover{ background:#1e3a8a; }
+.stButton button{
+  border-radius:9px; font-weight:600; border:1px solid #e2e8f0;
 }
-
-/* Info/warning boxes */
-.stAlert{ border-radius:12px; background:rgba(30,41,59,.5); }
+.stButton button:hover{ border-color:#1e40af; color:#1e40af; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -351,9 +323,9 @@ def kpi(label, value, delta=None, info=None, accent="#3b82f6", accent2="#6366f1"
     if info:
         info_clean = info.replace('"', "&quot;")
         i = f'<span class="kpi-info" title="{info_clean}">&#9432;</span>'
-    # Barre d'accent personnalisee par groupe
-    bar = f'<div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,{accent},{accent2});"></div>'
-    return (f'<div class="kpi-card" style="--none:0">'
+    # Accent corporate : barre verticale a gauche
+    bar = f'<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:{accent};"></div>'
+    return (f'<div class="kpi-card" style="padding-left:26px">'
             f'{bar}'
             f'<div class="kpi-label">{label}{i}</div>'
             f'<div class="kpi-value">{value}</div>{d}</div>')
@@ -570,23 +542,23 @@ if not ca_m.empty:
     with r1c1:
         st.markdown(kpi(ca_n_label, fmt(ca_n_val),
             info="Chiffre d'affaires total du mois en cours (somme des CA journaliers).",
-            accent="#2563eb", accent2="#3b82f6"), unsafe_allow_html=True)
+            accent="#1e40af", accent2="#1e40af"), unsafe_allow_html=True)
     with r1c2:
         st.markdown(kpi(ca_prec_label, fmt(ca_prec_val) if ca_prec_val else "—",
             ca_prec_delta,
             info="CA total du mois precedent. La variation compare ce mois precedent avec le mois encore avant (N-1 vs N-2).",
-            accent="#2563eb", accent2="#3b82f6"), unsafe_allow_html=True)
+            accent="#1e40af", accent2="#1e40af"), unsafe_allow_html=True)
     with r1c3:
         st.markdown(kpi("CA moyen / jour (en cours)",
             fmt(ca_moyen_jour_courant) if ca_moyen_jour_courant else "—",
             f"sur {nb_jours_ecoules} jours" if ca_moyen_jour_courant else None,
             info="CA du mois en cours divise par le nombre de jours ecoules jusqu'a la veille (aujourd'hui non compte).",
-            accent="#7c3aed", accent2="#8b5cf6"), unsafe_allow_html=True)
+            accent="#6d28d9", accent2="#6d28d9"), unsafe_allow_html=True)
     with r1c4:
         st.markdown(kpi("CA moyen / jour (mois prec.)",
             fmt(ca_moyen_jour_prec) if ca_moyen_jour_prec else "—",
             info="CA total du mois precedent divise par son nombre total de jours (mois complet).",
-            accent="#7c3aed", accent2="#8b5cf6"), unsafe_allow_html=True)
+            accent="#6d28d9", accent2="#6d28d9"), unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
@@ -598,28 +570,28 @@ if not ca_m.empty:
             f"{ca_prev_par_terrain:,.0f} DH" if ca_prev_par_terrain else "—",
             f"{nb_ter_last} terrains" if ca_prev_par_terrain else None,
             info="CA previsionnel du mois en cours divise par le nombre de terrains actifs.",
-            accent="#0d9488", accent2="#14b8a6"), unsafe_allow_html=True)
+            accent="#0f766e", accent2="#0f766e"), unsafe_allow_html=True)
     with r2c2:
         st.markdown(kpi(
             "CA / terrain (mois prec.)",
             f"{ca_par_terrain_prec:,.0f} DH" if ca_par_terrain_prec else "—",
             f"{nb_ter_prec} terrains" if ca_par_terrain_prec else None,
             info="CA total du mois precedent divise par son nombre de terrains. A comparer avec le previsionnel par terrain du mois en cours.",
-            accent="#0d9488", accent2="#14b8a6"), unsafe_allow_html=True)
+            accent="#0f766e", accent2="#0f766e"), unsafe_allow_html=True)
     with r2c3:
         st.markdown(kpi(
             f"CA previsionnel {int(last['mois']):02d}/{int(last['annee'])}",
             fmt(ca_previsionnel) if ca_previsionnel else "—",
             f"sur {nb_jours_mois_total} jours" if ca_previsionnel else None,
             info=f"Projection du CA pour le mois complet = (CA jusqu'a la veille / {nb_jours_ecoules} jours ecoules) x {nb_jours_mois_total} jours du mois.",
-            accent="#d97706", accent2="#f59e0b"), unsafe_allow_html=True)
+            accent="#b45309", accent2="#b45309"), unsafe_allow_html=True)
     with r2c4:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
                 f"Marge {lc.get('marge_ebitda',0):.1f}%" if pd.notna(lc.get("marge_ebitda")) else None,
                 info="EBITDA = Produits - Charges (hors amortissements) du dernier mois du CPC. Marge = EBITDA / CA x 100.",
-                accent="#d97706", accent2="#f59e0b"),
+                accent="#b45309", accent2="#b45309"),
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
@@ -628,7 +600,7 @@ if not ca_m.empty:
             fmt(best_ebitda_val) if best_ebitda_val else "—",
             best_ebitda_label if best_ebitda_label else None,
             info="Le mois ou l'EBITDA a ete le plus eleve sur toute la periode analysee, avec son montant.",
-            accent="#059669", accent2="#10b981"), unsafe_allow_html=True)
+            accent="#047857", accent2="#047857"), unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -684,7 +656,7 @@ with tab_ca:
                 text=ca_m["total_ca"].apply(lambda v: f"{v/1000:.0f}k"), textposition="outside"))
             fig.add_trace(go.Scatter(x=lx, y=ca_m["total_ca"].rolling(3,min_periods=1).mean(),
                 name="Moy. 3 mois", line=dict(color="#f59e0b",width=2,dash="dash")))
-            fig.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            fig.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
                 legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=30,b=10))
             st.plotly_chart(fig, use_container_width=True)
             cola, colb = st.columns(2)
@@ -695,7 +667,7 @@ with tab_ca:
                     text=ca_m["ca_mom_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
                     textposition="outside"))
                 fm.add_hline(y=0, line_color="#9ca3af")
-                fm.update_layout(height=280, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"), margin=dict(t=10,b=10))
+                fm.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=10,b=10))
                 st.plotly_chart(fm, use_container_width=True)
             with colb:
                 st.markdown("**Variation YoY (%)**")
@@ -704,7 +676,7 @@ with tab_ca:
                     text=ca_m["ca_yoy_pct"].apply(lambda v: f"{v:+.1f}%" if pd.notna(v) else ""),
                     textposition="outside"))
                 fy.add_hline(y=0, line_color="#9ca3af")
-                fy.update_layout(height=280, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"), margin=dict(t=10,b=10))
+                fy.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=10,b=10))
                 st.plotly_chart(fy, use_container_width=True)
             st.download_button("📥 CA CSV", ca_m.to_csv(index=False).encode(),
                 f"ca_mensuel_{datetime.date.today()}.csv","text/csv")
@@ -718,7 +690,7 @@ with tab_ca:
             df_n["mois_nom"] = df_n["mois"].map(MOIS_NOMS)
             fn = go.Figure(go.Bar(x=df_n["mois_nom"], y=df_n["total_ca"], marker_color="#2563eb",
                 text=df_n["total_ca"].apply(lambda v: f"{v/1000:.0f}k"), textposition="outside"))
-            fn.update_layout(height=360, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            fn.update_layout(height=360, plot_bgcolor="white", paper_bgcolor="white",
                 title=f"CA mensuel {annee_n}", yaxis_title="DH", margin=dict(t=50,b=10))
             st.plotly_chart(fn, use_container_width=True)
             df_nd = df_n[["mois_nom","total_ca","total_especes","total_cb","nb_jours","ca_mom_pct"]].copy()
@@ -769,7 +741,7 @@ with tab_ca:
                     name=str(an_comp), marker_color="#93c5fd"))
                 fc.update_layout(barmode="group", height=380,
                     title=f"CA : {an_ref} vs {an_comp}",
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+                    plot_bgcolor="white", paper_bgcolor="white",
                     legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=50,b=10))
                 st.plotly_chart(fc, use_container_width=True)
                 def ce(v):
@@ -798,7 +770,7 @@ with tab_ca:
                 marker_color="#8b5cf6",
                 text=dft2["ca_par_terrain"].apply(lambda v: f"{v/1000:.0f}k"),
                 textposition="outside"))
-            ft.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            ft.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
                 title=f"CA par terrain — {an_t}", yaxis_title="DH/terrain", margin=dict(t=50,b=10))
             st.plotly_chart(ft, use_container_width=True)
             dtd = dft2[["mois_nom","nb_terrains","total_ca","ca_par_terrain","nb_jours"]].copy()
@@ -852,7 +824,7 @@ with tab_ca:
                     name=str(an_tn1), marker_color="#c4b5fd"))
                 ftc.update_layout(barmode="group", height=380,
                     title=f"CA/Terrain : {an_tr} vs {an_tn1}",
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+                    plot_bgcolor="white", paper_bgcolor="white",
                     legend=dict(orientation="h",y=1.1),
                     yaxis_title="DH/terrain", margin=dict(t=50,b=10))
                 st.plotly_chart(ftc, use_container_width=True)
@@ -875,7 +847,7 @@ with tab_jour:
         marker_color=["#2563eb" if v==dow_avg["ca_moyen"].max() else "#93c5fd" for v in dow_avg["ca_moyen"]],
         text=dow_avg["ca_moyen"].apply(lambda v: f"{v:,.0f}"),
         textposition="outside"))
-    fig_dow.update_layout(height=320, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+    fig_dow.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
         yaxis_title="CA moyen (DH)", title="Le meilleur jour est mis en évidence",
         margin=dict(t=40,b=10))
     st.plotly_chart(fig_dow, use_container_width=True)
@@ -895,7 +867,7 @@ with tab_jour:
     heat_pivot = heat.pivot_table(index="annee", columns="mois", values="total_ca", aggfunc="sum")
     heat_pivot.columns = [MOIS_NOMS.get(int(c), str(c)) for c in heat_pivot.columns]
     fig_heat = px.imshow(heat_pivot,
-        color_continuous_scale="Blues", template="plotly_dark",
+        color_continuous_scale="Blues",
         text_auto=".0f",
         aspect="auto",
         title="CA mensuel par année (DH)")
@@ -911,7 +883,7 @@ with tab_jour:
         color_discrete_sequence=COLORS,
         labels={"semaine":"Semaine","total":"CA (DH)","annee":"Année"},
         title="Comparaison semaine par semaine")
-    fig_wk.update_layout(height=320, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+    fig_wk.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
         legend=dict(orientation="h",y=1.1), margin=dict(t=50,b=10))
     st.plotly_chart(fig_wk, use_container_width=True)
 
@@ -953,7 +925,7 @@ with tab_act:
                     marker_color=COLORS[:len(top_act)],
                     text=top_act.apply(lambda v: f"{v:,.0f}"),
                     textposition="outside"))
-                fig_hbar.update_layout(height=320, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+                fig_hbar.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
                     title="CA total par activité", xaxis_title="DH", margin=dict(t=50,b=10))
                 st.plotly_chart(fig_hbar, use_container_width=True)
 
@@ -969,7 +941,7 @@ with tab_act:
                     color_discrete_sequence=COLORS,
                     markers=True,
                     labels={"periode":"Période","montant":"CA (DH)","activite":"Activité"})
-                fig_act.update_layout(height=360, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+                fig_act.update_layout(height=360, plot_bgcolor="white", paper_bgcolor="white",
                     legend=dict(orientation="h",y=1.1), margin=dict(t=50,b=10))
                 st.plotly_chart(fig_act, use_container_width=True)
 
@@ -1042,7 +1014,7 @@ with tab_rem:
             ))
             fig_p.add_hline(y=res_plan["taux_moyen"], line_dash="dash", line_color="#6b7280",
                 annotation_text=f"Moyenne {res_plan['taux_moyen']:.0f}%")
-            fig_p.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            fig_p.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
                 yaxis_title="Taux (%)", yaxis_range=[0,105], margin=dict(t=20,b=10))
             st.plotly_chart(fig_p, use_container_width=True)
 
@@ -1057,7 +1029,7 @@ with tab_rem:
                 x=dow_plan["jour_nom"], y=dow_plan["taux"],
                 marker_color=["#2563eb" if v==dow_plan["taux"].max() else "#93c5fd" for v in dow_plan["taux"]],
                 text=dow_plan["taux"].apply(lambda v: f"{v:.0f}%"), textposition="outside"))
-            fig_dow.update_layout(height=320, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            fig_dow.update_layout(height=320, plot_bgcolor="white", paper_bgcolor="white",
                 yaxis_title="Taux (%)", yaxis_range=[0,105], margin=dict(t=10,b=10))
             st.plotly_chart(fig_dow, use_container_width=True)
 
@@ -1107,7 +1079,7 @@ with tab_be:
             ca  = cpc_a2.iloc[i]["total_ca"] or 0
             chg = cpc_a2.iloc[i]["total_charges"] or 0
             color = "rgba(16,185,129,0.15)" if ca >= chg else "rgba(239,68,68,0.15)"
-        fig_be.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+        fig_be.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
             yaxis_title="DH", legend=dict(orientation="h",y=1.1),
             title="CA vs Seuil de rentabilité — zone verte = profitable",
             margin=dict(t=60,b=10))
@@ -1162,7 +1134,7 @@ with tab_cpc:
         fig_c.add_trace(go.Bar(x=lx_cpc, y=cpc_a["total_charges"], name="Charges", marker_color="#ef4444",opacity=.85), secondary_y=False)
         fig_c.add_trace(go.Scatter(x=lx_cpc, y=cpc_a["marge_ebitda"], name="Marge EBITDA %",
             mode="lines+markers", line=dict(color="#f59e0b",width=3), marker=dict(size=7)), secondary_y=True)
-        fig_c.update_layout(height=420, barmode="group", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+        fig_c.update_layout(height=420, barmode="group", plot_bgcolor="white", paper_bgcolor="white",
             legend=dict(orientation="h",y=1.1), margin=dict(t=50,b=10))
         fig_c.update_yaxes(title_text="DH", secondary_y=False)
         fig_c.update_yaxes(title_text="Marge %", secondary_y=True)
@@ -1185,7 +1157,7 @@ with tab_cpc:
                 fig_chg = px.line(df_chg_f, x="periode", y="montant", color="poste",
                     color_discrete_sequence=COLORS, markers=True,
                     labels={"periode":"Période","montant":"Montant (DH)","poste":"Poste"})
-                fig_chg.update_layout(height=340, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+                fig_chg.update_layout(height=340, plot_bgcolor="white", paper_bgcolor="white",
                     legend=dict(orientation="h",y=1.1), margin=dict(t=50,b=10))
                 st.plotly_chart(fig_chg, use_container_width=True)
 
@@ -1260,7 +1232,7 @@ with tab_prev:
             x=all_labels, y=trend_vals[:len(all_labels)],
             name="Droite de tendance", mode="lines",
             line=dict(color="#9ca3af", width=1, dash="longdash")))
-        fig_prev.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+        fig_prev.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
             legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=50,b=10))
         st.plotly_chart(fig_prev, use_container_width=True)
 
@@ -1292,7 +1264,7 @@ with tab_mix:
                 fig_mix.add_trace(go.Bar(x=lx_m, y=ca_mix[col].fillna(0),
                     name=label, marker_color=color))
         fig_mix.update_layout(barmode="stack", height=320,
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+            plot_bgcolor="white", paper_bgcolor="white",
             legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=50,b=10))
         st.plotly_chart(fig_mix, use_container_width=True)
 
@@ -1306,7 +1278,7 @@ with tab_mix:
             fill="tozeroy", fillcolor="rgba(37,99,235,0.1)"))
         fig_pct.add_hline(y=50, line_dash="dash", line_color="#9ca3af",
             annotation_text="50%")
-        fig_pct.update_layout(height=280, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+        fig_pct.update_layout(height=280, plot_bgcolor="white", paper_bgcolor="white",
             yaxis_title="%", yaxis_range=[0,105], margin=dict(t=10,b=10))
         st.plotly_chart(fig_pct, use_container_width=True)
 
@@ -1365,7 +1337,7 @@ with tab_ano:
         annotation_text=f"Seuil haut {borne_haute:,.0f}")
     fig_ano.add_hline(y=max(borne_basse,500), line_dash="dot", line_color="#ef4444",
         annotation_text=f"Seuil bas")
-    fig_ano.update_layout(height=380, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+    fig_ano.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white",
         legend=dict(orientation="h",y=1.1), yaxis_title="DH", margin=dict(t=50,b=10))
     st.plotly_chart(fig_ano, use_container_width=True)
 
@@ -1395,7 +1367,7 @@ with tab_ano:
         data_an = ca_j2[ca_j2["annee"]==an]["total"]
         fig_box.add_trace(go.Box(y=data_an, name=str(int(an)),
             marker_color=COLORS[list(ca_j2["annee"].unique()).index(an)%len(COLORS)]))
-    fig_box.update_layout(height=300, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+    fig_box.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white",
         yaxis_title="CA (DH)", margin=dict(t=10,b=10))
     st.plotly_chart(fig_box, use_container_width=True)
 
@@ -1429,7 +1401,7 @@ with tab_cc:
             name="Total Caisses",mode="lines",line=dict(color="#10b981",width=2)))
         fig_cc.add_trace(go.Bar(x=cc["date"],y=cc["ecart"],name="Écart",yaxis="y2",
             opacity=.5,marker_color=["#ef4444" if e>0 else "#f59e0b" for e in cc["ecart"]]))
-        fig_cc.update_layout(height=380,plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",font=dict(color="#cbd5e1"),
+        fig_cc.update_layout(height=380,plot_bgcolor="white",paper_bgcolor="white",
             yaxis=dict(title="DH"),
             yaxis2=dict(title="Écart",overlaying="y",side="right"),
             legend=dict(orientation="h",y=1.1),margin=dict(t=50,b=10))
@@ -1511,7 +1483,7 @@ with tab_alert:
                           for v in df_score["Score"]],
             text=df_score.apply(lambda r: f"{r['Score']}/{r['Max']}", axis=1),
             textposition="outside"))
-        fig_rad.update_layout(height=300, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"),
+        fig_rad.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white",
             yaxis_range=[0,30], yaxis_title="Score", margin=dict(t=10,b=10))
         st.plotly_chart(fig_rad, use_container_width=True)
         st.dataframe(pd.DataFrame(composantes)[["Composante","Score","Max","Detail"]],
@@ -1540,7 +1512,7 @@ with tab_alert:
                 color=sev.index, color_discrete_map={"HIGH":"#ef4444","MEDIUM":"#f59e0b"},
                 text=sev.values, title="Par sévérité")
             fig_as.update_layout(height=260, showlegend=False,
-                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1"), margin=dict(t=40))
+                plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=40))
             st.plotly_chart(fig_as, use_container_width=True)
 
         if high:
