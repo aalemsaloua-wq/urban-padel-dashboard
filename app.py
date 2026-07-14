@@ -402,6 +402,18 @@ if not ca_m.empty:
         if nb_ter_prec:
             ca_par_terrain_prec = ca_m_prec["total_ca"] / nb_ter_prec
 
+    # ── Meilleur mois EBITDA ──────────────────────────────
+    best_ebitda_val = None
+    best_ebitda_label = None
+    if not cpc_a.empty and "ebitda" in cpc_a.columns:
+        cpc_valides = cpc_a[cpc_a["ebitda"].notna()]
+        if not cpc_valides.empty:
+            best_row = cpc_valides.loc[cpc_valides["ebitda"].idxmax()]
+            best_ebitda_val = best_row["ebitda"]
+            best_date = best_row.get("date")
+            if best_date is not None:
+                best_ebitda_label = MOIS_NOMS.get(int(best_date.month), "") + f" {int(best_date.year)}"
+
     # Cross-check 2026 uniquement
     cc_2026 = cc[cc["date"].dt.year >= 2026] if not cc.empty else cc
     nb_ok_2026  = (cc_2026["statut"]=="✅ OK").sum() if not cc_2026.empty else 0
@@ -450,8 +462,8 @@ if not ca_m.empty:
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-    # Ligne 2 : CA/TERRAIN (previsionnel en cours vs precedent) + PREVISIONNEL + EBITDA
-    r2c1, r2c2, r2c3, r2c4 = st.columns(4, gap="medium")
+    # Ligne 2 : CA/TERRAIN + PREVISIONNEL + EBITDA + MEILLEUR EBITDA
+    r2c1, r2c2, r2c3, r2c4, r2c5 = st.columns(5, gap="medium")
     with r2c1:
         st.markdown(kpi(
             "CA prev. / terrain (en cours)",
@@ -479,6 +491,11 @@ if not ca_m.empty:
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
+    with r2c5:
+        st.markdown(kpi("Meilleur mois EBITDA",
+            fmt(best_ebitda_val) if best_ebitda_val else "—",
+            best_ebitda_label if best_ebitda_label else None,
+            info="Le mois ou l'EBITDA a ete le plus eleve sur toute la periode analysee, avec son montant."), unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
