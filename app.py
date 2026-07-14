@@ -424,8 +424,8 @@ if not ca_m.empty:
     except Exception as _e:
         taux_planning = None
 
-    # ═══════════════ BARRE KPI ═══════════════
-    # Ligne 1 : Performance CA
+    # ═══════════════ BARRE KPI (regroupee par principe) ═══════════════
+    # Ligne 1 : CA GLOBAL (en cours vs precedent) + CA MOYEN/JOUR (en cours vs precedent)
     r1c1, r1c2, r1c3, r1c4 = st.columns(4, gap="medium")
     with r1c1:
         st.markdown(kpi(ca_n_label, fmt(ca_n_val),
@@ -446,9 +446,27 @@ if not ca_m.empty:
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-    # Ligne 2 : Previsionnel & rentabilite
+    # Ligne 2 : CA/TERRAIN (previsionnel en cours vs precedent) + PREVISIONNEL + EBITDA
     r2c1, r2c2, r2c3, r2c4 = st.columns(4, gap="medium")
     with r2c1:
+        st.markdown(kpi(
+            "CA prev. / terrain (en cours)",
+            f"{ca_prev_par_terrain:,.0f} DH" if ca_prev_par_terrain else "—",
+            f"{nb_ter_last} terrains" if ca_prev_par_terrain else None,
+            info="CA previsionnel du mois en cours divise par le nombre de terrains actifs."), unsafe_allow_html=True)
+    with r2c2:
+        st.markdown(kpi(
+            "CA / terrain (mois prec.)",
+            f"{ca_par_terrain_prec:,.0f} DH" if ca_par_terrain_prec else "—",
+            f"{nb_ter_prec} terrains" if ca_par_terrain_prec else None,
+            info="CA total du mois precedent divise par son nombre de terrains. A comparer avec le previsionnel par terrain du mois en cours."), unsafe_allow_html=True)
+    with r2c3:
+        st.markdown(kpi(
+            f"CA previsionnel {int(last['mois']):02d}/{int(last['annee'])}",
+            fmt(ca_previsionnel) if ca_previsionnel else "—",
+            f"sur {nb_jours_mois_total} jours" if ca_previsionnel else None,
+            info=f"Projection du CA pour le mois complet = (CA jusqu'a la veille / {nb_jours_ecoules} jours ecoules) x {nb_jours_mois_total} jours du mois."), unsafe_allow_html=True)
+    with r2c4:
         if not cpc_a.empty:
             lc = cpc_a.iloc[-1]
             st.markdown(kpi("EBITDA dernier mois", fmt(lc.get("ebitda")),
@@ -457,24 +475,6 @@ if not ca_m.empty:
                 unsafe_allow_html=True)
         else:
             st.markdown(kpi("EBITDA", "—"), unsafe_allow_html=True)
-    with r2c2:
-        st.markdown(kpi(
-            f"CA previsionnel {int(last['mois']):02d}/{int(last['annee'])}",
-            fmt(ca_previsionnel) if ca_previsionnel else "—",
-            f"sur {nb_jours_mois_total} jours" if ca_previsionnel else None,
-            info=f"Projection du CA pour le mois complet = (CA jusqu'a la veille / {nb_jours_ecoules} jours ecoules) x {nb_jours_mois_total} jours du mois."), unsafe_allow_html=True)
-    with r2c3:
-        st.markdown(kpi(
-            "CA prev. / terrain (en cours)",
-            f"{ca_prev_par_terrain:,.0f} DH" if ca_prev_par_terrain else "—",
-            f"{nb_ter_last} terrains" if ca_prev_par_terrain else None,
-            info="CA previsionnel du mois en cours divise par le nombre de terrains actifs."), unsafe_allow_html=True)
-    with r2c4:
-        st.markdown(kpi(
-            "CA / terrain (mois prec.)",
-            f"{ca_par_terrain_prec:,.0f} DH" if ca_par_terrain_prec else "—",
-            f"{nb_ter_prec} terrains" if ca_par_terrain_prec else None,
-            info="CA total du mois precedent divise par son nombre de terrains. Permet de comparer avec le previsionnel par terrain du mois en cours."), unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
